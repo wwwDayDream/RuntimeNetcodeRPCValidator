@@ -1,0 +1,4 @@
+# Ignore user files
+**.user
+/bin/
+/obj/

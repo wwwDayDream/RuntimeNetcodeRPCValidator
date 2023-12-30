@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <RunPostBuildEvent>Always</RunPostBuildEvent>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <Reference Include="0Harmony">
+            <HintPath>$(BepInExLocation)\core\0Harmony.dll</HintPath>
+        </Reference>
+        <Reference Include="BepInEx">
+            <HintPath>$(BepInExLocation)\core\BepInEx.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.Netcode.Runtime">
+            <HintPath>$(GameLocation)\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.Collections">
+            <HintPath>$(GameLocation)\Lethal Company_Data\Managed\Unity.Collections.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine">
+            <HintPath>$(GameLocation)\Lethal Company_Data\Managed\UnityEngine.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.CoreModule">
+            <HintPath>$(GameLocation)\Lethal Company_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+        </Reference>
+        <Content Include="RuntimeNetcodeRPCValidator.csproj.user" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Remove=".gitattributes" />
+        <None Remove=".gitignore" />
+    </ItemGroup>
+
+
+    <!-- Publicizer -->
+    <ItemGroup>
+        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" />
+        <Publicize Include="Unity.Netcode.Runtime"/>
+    </ItemGroup>
+    
+    <!-- Build Events -->
+    <Target Name="PreBuild" AfterTargets="PreBuildEvent" Condition="!Exists('$(ProjectPath).user')">
+        <PropertyGroup>
+            <PreBuildPowerShellScriptPath>$(ProjectDir)PreBuild-GenerateUserSettings.ps1</PreBuildPowerShellScriptPath>
+            <PreBuildPowerShellCommand>START /wait powershell -command &quot;$(PreBuildPowerShellScriptPath) '$(ProjectPath)' '$(ProjectDir)'&quot;</PreBuildPowerShellCommand>
+        </PropertyGroup>
+        <Exec Command="$(PreBuildPowerShellCommand)" />
+    </Target>
+
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+        <PropertyGroup>
+            <ModsFolderPath>$(BepInExLocation)\plugins\$(ProjectName)\</ModsFolderPath>
+            <RemoveDirectoryCommand>rd /s /q &quot;$(ModsFolderPath)&quot; 2&gt;nul</RemoveDirectoryCommand>
+            <CopyFilesCommand>xcopy &quot;$(TargetPath)&quot; &quot;$(ModsFolderPath)&quot; /Y /E /I</CopyFilesCommand>
+        </PropertyGroup>
+        <Exec Command="$(RemoveDirectoryCommand)&#xA;$(CopyFilesCommand)"/>
+        <Exec Command="tcli build --config-path ./assets/thunderstore.toml"/>
+    </Target>
+</Project>

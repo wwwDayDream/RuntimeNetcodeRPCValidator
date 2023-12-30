@@ -1,0 +1,30 @@
+[config]
+schemaVersion = "0.0.1"
+
+[general]
+repository = "https://thunderstore.io"
+
+[package]
+namespace = "NicholaScott"
+name = "Runtime_Netcode_Patcher"
+description = "Patches Netcode RPC methods during runtime utilizing Harmony"
+websiteUrl = ""
+containsNsfwContent = false
+
+[package.dependencies]
+BepInEx-BepInExPack = "5.4.2100"
+
+[build]
+icon = "./icon.png"
+readme = "../README.md"
+outdir = "../bin/Debug/netstandard2.1"
+
+[[build.copy]]
+source  = "../bin/Debug/netstandard2.1/RuntimeNetcodeRPCValidator.dll"
+target = "/RuntimeNetcodeRPCValidator.dll"
+
+[publish]
+communities = ["lethal-company"]
+
+[publish.categories]
+lethal-company = ["bepinex", "libraries", "tools"]
