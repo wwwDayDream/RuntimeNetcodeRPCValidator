@@ -53,6 +53,6 @@
             <CopyFilesCommand>xcopy &quot;$(TargetPath)&quot; &quot;$(ModsFolderPath)&quot; /Y /E /I</CopyFilesCommand>
         </PropertyGroup>
         <Exec Command="$(RemoveDirectoryCommand)&#xA;$(CopyFilesCommand)"/>
-        <Exec Command="tcli build --config-path ./assets/thunderstore.toml"/>
+        <!-- <Exec Command="tcli build \-\-config-path ./assets/thunderstore.toml \-\-package-version "/> -->
     </Target>
 </Project>

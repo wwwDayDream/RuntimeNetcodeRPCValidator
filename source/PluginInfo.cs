@@ -6,6 +6,6 @@ namespace RuntimeNetcodeRPCValidator
         public const string Domain = "BepInEx";
         public const string Name = "RuntimeNetcodeRPCValidator";
         public const string GUID = Author + "." + Domain + "." + Name;
-        public const string Version = "0.0.1";
+        public const string Version = "0.0.2";
     }
 }

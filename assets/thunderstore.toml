@@ -5,10 +5,10 @@ schemaVersion = "0.0.1"
 repository = "https://thunderstore.io"
 
 [package]
-namespace = "NicholaScott"
+namespace = "Ozone"
 name = "Runtime_Netcode_Patcher"
 description = "Patches Netcode RPC methods during runtime utilizing Harmony"
-websiteUrl = ""
+websiteUrl = "https://github.com/NicholasScott1337/RuntimeNetcodeRPCValidator"
 containsNsfwContent = false
 
 [package.dependencies]
