@@ -1,11 +1,12 @@
 # Runtime Unity Netcode Patcher
 
 
-This plugin offers an easy-to-use solution for Netcode's NetworkBehaviour class, streamlining the approach to networking mods with Server and Client RPCs. By leveraging the CustomMessagingHandler of Netcode, it simplifies the modding process, allowing for easier implementation of RPCs without the need for complex compile-time DLL patching. Designed as a BepInPlugin, it adheres to the same attribute and name restrictions as the standard netcode patcher, making it a user-friendly and effective dependency for enhancing your modding projects.
+This plugin offers an easy-to-use solution for Netcode's NetworkBehaviour class, streamlining the approach to networking mods with Server and Client RPCs. By utilizing the CustomMessagingHandler of Netcode, it networks RPCs and their System.Serializable (Marked with [Serializable]) or INetworkSerializable parameters. While this is currently only in the Lethal Company directory, it can be expanded to other games upon request. Please reach out on Discord or via an issue here on Github for questions or contact.
 
 
 ## Table of Contents
 - [Getting Started](#getting-started)
+- [Examples](#examples)
 - [Prerequisites](#prerequisites)
 - [Notes](#notes)
 - [Built With](#built-with)
@@ -18,15 +19,65 @@ This plugin offers an easy-to-use solution for Netcode's NetworkBehaviour class,
 To integrate Runtime Unity Netcode Patcher in your Unity project, follow these steps:
 
 1. **Reference the Output DLL**: Include the output DLL in your project and add an `[BepInDependency(RuntimeNetcodeRPCValidator.PluginInfo.GUID)]` attribute to your `[BepInPlugin]`.
-2. **Instantiate NetcodeValidator**: Create and maintain a reference to an instance of `NetcodeValidator`. When you wish to revert any patches applied, simply call `Dispose()` on the instance. A new instance can then be created to reapply the netcode patching.
+2. **Instantiate NetcodeValidator**: Create and maintain a reference to an instance of `NetcodeValidator` && call `NetcodeValidator.PatchAll()`. When you wish to revert any patches applied, simply call `Dispose()`, or `UnpatchSelf()` if you want to keep the instance, on the instance. A new instance can then be created to reapply the netcode patching.
 3. **Define and Use RPCs**: Ensure your Remote Procedure Calls on your NetworkBehaviours have the correct attribute and end their name with ServerRpc/ClientRpc.
+
+### Examples
 
 ```csharp
 // Example of using NetcodeValidator
-NetcodeValidator myValidator = new NetcodeValidator(...);
-// ...
-// Dispose when plugin unloads
-myValidator.Dispose();
+namespace SomePlugin {
+    public class MyPlugin : BaseUnityPlugin {
+        private NetcodeValidator netcodeValidator;
+        
+        private void Awake()
+        {
+            netcodeValidator = new NetcodeValidator(this);
+            netcodeValidator.PatchAll();
+        }
+        
+        // [[OPTIONAL DISPOSE TO UNPATCH]]
+        private void OnDestroy()
+        {
+            netcodeValidator.Dispose();
+        }
+    }
+}
+```
+
+
+```csharp
+// Example of using Server or Client RPCs. Naming conventions require the method to end with the corresponding attribute name.
+namespace SomePlugin {
+    // This assumes you've declared a BaseUnityPlugin and Harmony instance elsewhere. Including the previous snippet about NetcodeValidator.
+    [HarmonyPatch(typeof(Terminal), "Start")]
+    private static class Patch {
+        [HarmonyPrefix]
+        private static void AddToTerminalObject(Terminal __instance) {
+            
+        }
+    }
+    public class PluginNetworkingInstance : NetworkBehaviour {
+        [ServerRpc]
+        public void SendPreferredNameServerRpc(string name) {
+            Debug.Log(name);
+            TellAllOtherClients(NetworkBehaviourExtensions.LastSenderId, name);
+        }
+        [ClientRpc]
+        public void TellEveryoneClientRpc(ulong senderId, string name) {
+            Debug.Log(StartOfRound.Instance.allPlayerScripts.First(playerController => playerController.actualClientId == senderId).playerUsername + " is now " + name);
+        }
+        [ClientRpc]
+        public void RunClientRpc() {
+            SendPreferredNameServerRpc("Nicki");
+        }
+        public void Awake()
+        {
+            if (IsHost)
+                RunClientRpc();
+        }
+    }
+}
 ```
 
 ### Prerequisites
@@ -38,7 +89,7 @@ Ensure you have the following components within the environment:
 
 ### Notes
 
-Utilize the `NetworkBehaviour.LastRPCSender()`, accessible with `this.` inside a network behaviour instance, method to retrieve the ID of the last RPC sender. This will always be `NetworkManager.ServerClientId` on the clients.
+Utilize the `NetworkBehaviourExtensions.LastSenderId` property to retrieve the ID of the last RPC sender. This will always be `NetworkManager.ServerClientId` on the clients.
 
 
 ### Built With
@@ -53,7 +104,3 @@ Utilize the `NetworkBehaviour.LastRPCSender()`, accessible with `this.` inside a
 ## Contributing
 
 We welcome contributions! If you would like to help improve the Runtime Unity Netcode Patcher, please submit pull requests, and report bugs or suggestions in the issues section of this repository.
-
-## License
-
-This project is licensed under the [MIT License](LICENSE.md) - see the LICENSE file for details.

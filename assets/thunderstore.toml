@@ -23,6 +23,10 @@ outdir = "../bin/Debug/netstandard2.1"
 source  = "../bin/Debug/netstandard2.1/RuntimeNetcodeRPCValidator.dll"
 target = "/RuntimeNetcodeRPCValidator.dll"
 
+[[build.copy]]
+source = "../CHANGELOG.md"
+target = "CHANGELOG.md"
+
 [publish]
 communities = ["lethal-company"]
 

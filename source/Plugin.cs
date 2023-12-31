@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -6,68 +7,39 @@ using System.Reflection;
 using BepInEx;
 using HarmonyLib;
 using Unity.Netcode;
+using UnityEngine;
 using Debug = UnityEngine.Debug;
 
 namespace RuntimeNetcodeRPCValidator
 {
-    [BepInPlugin(PluginInfo.GUID, PluginInfo.Name, PluginInfo.Version)]
-    public class Plugin : BaseUnityPlugin
-    {
-        private Harmony harmony = new Harmony(PluginInfo.GUID);
-
-        private void Awake()
-        {
-            harmony.Patch(AccessTools.Method(typeof(NetworkManager), nameof(NetworkManager.Initialize)),
-                postfix: new HarmonyMethod(AccessTools.Method(typeof(Plugin), nameof(OnNetworkManagerInitialized))));
-        }
-
-        private static void OnNetworkManagerInitialized()
-        {
-            NetcodeValidator.PatchImmediate = true;
-            foreach (var plugin in NetcodeValidator.RegisteredPlugins)
-            {
-                plugin.Value.TryPatch();
-            }
-        }
-
-        private static void OnNetworkManagerShutdown()
-        {
-            NetcodeValidator.PatchImmediate = false;
-            foreach (var plugin in NetcodeValidator.RegisteredPlugins)
-            {
-                plugin.Value.Unpatch();
-            }
-        }
-    }
-
-    public class AlreadyPatchedException : Exception
-    {
-        public AlreadyPatchedException(string PluginGUID) : base(
-            $"Can't patch plugin {PluginGUID} until the other instance of NetcodeValidator is Disposed of!") {}
-    }
     public struct NetcodeValidator : IDisposable
     {
-        internal static bool PatchImmediate = false;
-        
-        internal static readonly Dictionary<string, NetcodeValidator> RegisteredPlugins = new Dictionary<string, NetcodeValidator>();
+        public static readonly List<Type> AlreadyRegistered = new List<Type>();
+        public static readonly List<NetcodeValidator> Validators = new List<NetcodeValidator>();
+        private Harmony Patcher { get; set; }
+        private string[] CustomMessageHandlers { get; set; }
+        private Type pluginType;
+        private List<(MethodBase original, HarmonyMethod patch, bool prefix)> Patches { get; set; }
 
-        private readonly BaseUnityPlugin plugin;
-        private readonly Harmony patcher;
-        private bool patched;
-        private string[] customMessageHandlers;
-        internal void TryPatch()
+        public NetcodeValidator(BaseUnityPlugin plugin)
         {
-            if (!PatchImmediate) return;
-            var allTypes = plugin.GetType().Assembly.GetTypes().Where(type =>
+            pluginType = plugin.GetType();
+            if (AlreadyRegistered.Contains(pluginType))
+                throw new AlreadyPatchedException(plugin.Info.Metadata.GUID);
+            AlreadyRegistered.Add(pluginType);
+            
+            Patcher = new Harmony(plugin.Info.Metadata.GUID + PluginInfo.GUID);
+            
+            var allTypes = pluginType.Assembly.GetTypes().Where(type =>
                 type.BaseType == typeof(NetworkBehaviour)).ToArray();
-            customMessageHandlers = new string[allTypes.Length];
+            CustomMessageHandlers = new string[allTypes.Length];
+            Patches = new List<(MethodBase original, HarmonyMethod patch, bool prefix)>();
             for (var i = 0; i < allTypes.Length; i++)
             {
-                customMessageHandlers[i] = $"Net.{allTypes[i].Name}";
-                NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler(customMessageHandlers[i],
-                    NetworkBehaviourExtensions.ReceiveNetworkMessage);
-            }
+                CustomMessageHandlers[i] = $"Net.{allTypes[i].Name}";
 
+                Patches.Add((AccessTools.Constructor(allTypes[i]), new HarmonyMethod(typeof(Plugin), nameof(Plugin.UpdateNetworkProperties)), false));
+            }
             foreach (var method in allTypes.SelectMany(type =>
                          type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)))
             {
@@ -90,77 +62,93 @@ namespace RuntimeNetcodeRPCValidator
                     Debug.LogError($"[Network] Can't patch method {method.DeclaringType?.Name}.{method.Name} because it doesn't end with {(method.GetCustomAttribute<ServerRpcAttribute>() != null ? "Server" : "Client")}Rpc.");
                     continue;
                 }
-                HarmonyMethod harmonyMethod = null;
-                switch (method.GetParameters().Length)
-                {
-                    case 0:
-                        harmonyMethod = new HarmonyMethod(AccessTools.Method(typeof(NetworkBehaviourExtensions),
-                            nameof(NetworkBehaviourExtensions.MethodPatch0)));
-                        break;
-                    case 1:
-                        harmonyMethod = new HarmonyMethod(AccessTools.Method(typeof(NetworkBehaviourExtensions),
-                            nameof(NetworkBehaviourExtensions.MethodPatch1)));
-                        break;
-                    case 2:
-                        harmonyMethod = new HarmonyMethod(AccessTools.Method(typeof(NetworkBehaviourExtensions),
-                            nameof(NetworkBehaviourExtensions.MethodPatch2)));
-                        break;
-                    case 3:
-                        harmonyMethod = new HarmonyMethod(AccessTools.Method(typeof(NetworkBehaviourExtensions),
-                            nameof(NetworkBehaviourExtensions.MethodPatch3)));
-                        break;
-                    case 4:
-                        harmonyMethod = new HarmonyMethod(AccessTools.Method(typeof(NetworkBehaviourExtensions),
-                            nameof(NetworkBehaviourExtensions.MethodPatch4)));
-                        break;
-                    case 5:
-                        harmonyMethod = new HarmonyMethod(AccessTools.Method(typeof(NetworkBehaviourExtensions),
-                            nameof(NetworkBehaviourExtensions.MethodPatch5)));
-                        break;
-                    case 6:
-                        harmonyMethod = new HarmonyMethod(AccessTools.Method(typeof(NetworkBehaviourExtensions),
-                            nameof(NetworkBehaviourExtensions.MethodPatch6)));
-                        break;
-                    default:
-                        Debug.LogError($"[Network] Can't patch method {method.DeclaringType?.Name}.{method.Name} as we don't support that many arguments. Please convert them to a [Serializable] object.");
-                        continue;
-                }
                 Debug.Log($"[Network] Patching {method.DeclaringType?.Name}.{method.Name} as {(method.GetCustomAttribute<ServerRpcAttribute>() != null ? "Server" : "Client")}Rpc.");
-                if (harmonyMethod != null)
-                    patcher.Patch(method, prefix: harmonyMethod);
+                Patches.Add((method, new HarmonyMethod(typeof(NetworkBehaviourExtensions), nameof(NetworkBehaviourExtensions.MethodPatch)), true));
             }
-
-            patched = true;
+            Validators.Add(this);
         }
 
-        public NetcodeValidator(BaseUnityPlugin plugin)
+        public void PatchAll()
         {
-            var pluginGuid = plugin.Info.Metadata.GUID;
-            
-            if (RegisteredPlugins.ContainsKey(pluginGuid))
-                throw new AlreadyPatchedException(pluginGuid);
-            
-            this.plugin = plugin;
-            patched = false;
-            customMessageHandlers = Array.Empty<string>();
-            patcher = new Harmony(PluginInfo.GUID + "." + pluginGuid);
-            
-            RegisteredPlugins.Add(pluginGuid, this);
-            
-            TryPatch();
+            foreach (var (original, patch, prefix) in Patches)
+                Patcher.Patch(original, prefix: prefix ? patch : null, postfix: !prefix ? patch : null);
+        }
+        public void UnpatchSelf()
+        {
+            Patcher.UnpatchSelf();
         }
 
-        public void Unpatch()
+        internal void NetworkManagerInitialized()
         {
-            foreach (var t in customMessageHandlers)
-                NetworkManager.Singleton.CustomMessagingManager.UnregisterNamedMessageHandler(t);
-            customMessageHandlers = Array.Empty<string>();
-            if (patched)
-                patcher.UnpatchSelf();
+            foreach (var customMessageHandler in CustomMessageHandlers)
+                NetworkManager.Singleton.CustomMessagingManager.RegisterNamedMessageHandler(customMessageHandler,
+                    NetworkBehaviourExtensions.ReceiveNetworkMessage);
         }
+
+        internal void NetworkManagerShutdown()
+        {
+            foreach (var customMessageHandler in CustomMessageHandlers)
+                NetworkManager.Singleton.CustomMessagingManager.UnregisterNamedMessageHandler(customMessageHandler);
+        }
+
         public void Dispose()
         {
-            Unpatch();
+            AlreadyRegistered.Remove(pluginType);
+            Validators.Remove(this);
+            if (NetworkManager.Singleton)
+                foreach (var customMessageHandler in CustomMessageHandlers)
+                    NetworkManager.Singleton.CustomMessagingManager.UnregisterNamedMessageHandler(customMessageHandler);
+
+            if (Patcher.GetPatchedMethods().Any())
+                UnpatchSelf();
         }
+    } 
+    
+    [BepInPlugin(PluginInfo.GUID, PluginInfo.Name, PluginInfo.Version)]
+    public class Plugin : BaseUnityPlugin
+    {
+        private readonly Harmony harmony = new Harmony(PluginInfo.GUID);
+
+        private void Awake()
+        {
+            harmony.Patch(AccessTools.Method(typeof(NetworkManager), nameof(NetworkManager.Initialize)),
+                postfix: new HarmonyMethod(AccessTools.Method(typeof(Plugin), nameof(OnNetworkManagerInitialized))));
+            harmony.Patch(AccessTools.Method(typeof(NetworkManager), nameof(NetworkManager.Shutdown)),
+                postfix: new HarmonyMethod(AccessTools.Method(typeof(Plugin), nameof(OnNetworkManagerShutdown))));
+        }
+
+        private static void OnNetworkManagerInitialized()
+        {
+            foreach (var netcodeValidator in NetcodeValidator.Validators)
+                netcodeValidator.NetworkManagerInitialized();
+        }
+
+        private static void OnNetworkManagerShutdown()
+        {
+            foreach (var netcodeValidator in NetcodeValidator.Validators)
+                netcodeValidator.NetworkManagerShutdown();
+        }
+
+        internal static void UpdateNetworkProperties(object __instance)
+        {
+            (__instance as NetworkBehaviour)?.StartCoroutine(YieldUntilIsSpawned(__instance as NetworkBehaviour));
+        }
+
+        private static IEnumerator YieldUntilIsSpawned(NetworkBehaviour networkBehaviour)
+        {
+            yield return new WaitUntil(() => networkBehaviour.NetworkObject.IsSpawned);
+            Debug.Log("Verifying as registered with network object.");
+            
+            if (!networkBehaviour.NetworkObject.ChildNetworkBehaviours.Contains(networkBehaviour))
+                networkBehaviour.NetworkObject.ChildNetworkBehaviours.Add(networkBehaviour);
+            
+            networkBehaviour.UpdateNetworkProperties();
+        }
+    }
+
+    public class AlreadyPatchedException : Exception
+    {
+        public AlreadyPatchedException(string PluginGUID) : base(
+            $"Can't patch plugin {PluginGUID} until the other instance of NetcodeValidator is Disposed of!") {}
     }
 }
