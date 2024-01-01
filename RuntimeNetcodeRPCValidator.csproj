@@ -5,23 +5,18 @@
     </PropertyGroup>
     
     <ItemGroup>
+        <PackageReference Include="UnityEngine.Modules" Version="2022.3.9" />
         <Reference Include="0Harmony">
             <HintPath>$(BepInExLocation)\core\0Harmony.dll</HintPath>
         </Reference>
         <Reference Include="BepInEx">
             <HintPath>$(BepInExLocation)\core\BepInEx.dll</HintPath>
         </Reference>
-        <Reference Include="Unity.Netcode.Runtime">
-            <HintPath>$(GameLocation)\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll</HintPath>
-        </Reference>
         <Reference Include="Unity.Collections">
             <HintPath>$(GameLocation)\Lethal Company_Data\Managed\Unity.Collections.dll</HintPath>
         </Reference>
-        <Reference Include="UnityEngine">
-            <HintPath>$(GameLocation)\Lethal Company_Data\Managed\UnityEngine.dll</HintPath>
-        </Reference>
-        <Reference Include="UnityEngine.CoreModule">
-            <HintPath>$(GameLocation)\Lethal Company_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+        <Reference Include="Unity.Netcode.Runtime">
+            <HintPath>$(GameLocation)\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll</HintPath>
         </Reference>
         <Content Include="RuntimeNetcodeRPCValidator.csproj.user" />
     </ItemGroup>

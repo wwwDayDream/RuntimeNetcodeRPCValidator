@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using BepInEx;
+using BepInEx.Logging;
 using HarmonyLib;
 using Unity.Netcode;
 using UnityEngine;
@@ -14,11 +14,11 @@ namespace RuntimeNetcodeRPCValidator
 {
     public struct NetcodeValidator : IDisposable
     {
-        public static readonly List<Type> AlreadyRegistered = new List<Type>();
+        private static readonly List<Type> AlreadyRegistered = new List<Type>();
         public static readonly List<NetcodeValidator> Validators = new List<NetcodeValidator>();
         private Harmony Patcher { get; set; }
         private string[] CustomMessageHandlers { get; set; }
-        private Type pluginType;
+        private readonly Type pluginType;
         private List<(MethodBase original, HarmonyMethod patch, bool prefix)> Patches { get; set; }
 
         public NetcodeValidator(BaseUnityPlugin plugin)
@@ -73,6 +73,7 @@ namespace RuntimeNetcodeRPCValidator
             foreach (var (original, patch, prefix) in Patches)
                 Patcher.Patch(original, prefix: prefix ? patch : null, postfix: !prefix ? patch : null);
         }
+        // ReSharper disable once MemberCanBePrivate.Global
         public void UnpatchSelf()
         {
             Patcher.UnpatchSelf();
@@ -108,13 +109,15 @@ namespace RuntimeNetcodeRPCValidator
     public class Plugin : BaseUnityPlugin
     {
         private readonly Harmony harmony = new Harmony(PluginInfo.GUID);
+        public new static ManualLogSource Logger { get; private set; } = null!;
 
         private void Awake()
         {
+            Logger = Logger;
             harmony.Patch(AccessTools.Method(typeof(NetworkManager), nameof(NetworkManager.Initialize)),
-                postfix: new HarmonyMethod(AccessTools.Method(typeof(Plugin), nameof(OnNetworkManagerInitialized))));
+                postfix: new HarmonyMethod(typeof(Plugin), nameof(OnNetworkManagerInitialized)));
             harmony.Patch(AccessTools.Method(typeof(NetworkManager), nameof(NetworkManager.Shutdown)),
-                postfix: new HarmonyMethod(AccessTools.Method(typeof(Plugin), nameof(OnNetworkManagerShutdown))));
+                postfix: new HarmonyMethod(typeof(Plugin), nameof(OnNetworkManagerShutdown)));
         }
 
         private static void OnNetworkManagerInitialized()
@@ -131,7 +134,7 @@ namespace RuntimeNetcodeRPCValidator
 
         internal static void UpdateNetworkProperties(object __instance)
         {
-            (__instance as NetworkBehaviour)?.StartCoroutine(YieldUntilIsSpawned(__instance as NetworkBehaviour));
+            (__instance as NetworkBehaviour)?.StartCoroutine(YieldUntilIsSpawned((NetworkBehaviour)__instance));
         }
 
         private static IEnumerator YieldUntilIsSpawned(NetworkBehaviour networkBehaviour)
