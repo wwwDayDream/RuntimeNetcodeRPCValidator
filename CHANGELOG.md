@@ -6,6 +6,7 @@
 
 - Incorrect error logging in a few places.
 - Project structure was out of control. It's now.. In control.
+- Git fixes.
 
 ## v0.1.1
 
