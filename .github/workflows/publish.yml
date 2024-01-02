@@ -29,6 +29,14 @@ jobs:
         run: |
           dotnet tool install -g tcli
 
+      - name: Build solution
+        run: |
+          dotnet publish
+          
+      - name: Pack Solution
+        run: |
+          dotnet pack --no-build
+
       - name: Build and pack solution
         run: |
           dotnet pack
