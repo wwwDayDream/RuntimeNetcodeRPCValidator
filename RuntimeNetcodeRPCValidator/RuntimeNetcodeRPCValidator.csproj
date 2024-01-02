@@ -24,12 +24,7 @@
 
     <ItemGroup>
         <PackageReference Include="UnityEngine.Modules" Version="2022.3.9" />
-        <Reference Include="Unity.Collections">
-            <HintPath>$(GameLocation)\Lethal Company_Data\Managed\Unity.Collections.dll</HintPath>
-        </Reference>
-        <Reference Include="Unity.Netcode.Runtime">
-            <HintPath>$(GameLocation)\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll</HintPath>
-        </Reference>
+        <PackageReference Include="LethalCompany.GameLibs.Steam" Version="45.0.2-alpha.1" />
     </ItemGroup>
 
     <!-- Publicizer -->
