@@ -6,11 +6,4 @@
             <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" />
         </ItemGroup>
     </Target>
-    <ItemGroup>
-        <PackageReference Include="MinVer" Version="4.3.0"/>
-    </ItemGroup>
-    <PropertyGroup>
-        <MinVerDefaultPreReleaseIdentifiers>dev</MinVerDefaultPreReleaseIdentifiers>
-        <MinVerTagPrefix>v</MinVerTagPrefix>
-    </PropertyGroup>
 </Project>
