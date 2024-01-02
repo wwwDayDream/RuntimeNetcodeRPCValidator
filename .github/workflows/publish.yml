@@ -72,6 +72,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: nupkg-build
+          path: ./bin
 
       - name: Validate artifact exists
         run: test -d ./bin
@@ -89,6 +90,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: thunderstore-build
+          path: ./dist
 
       - name: Validate artifact exists
         run: test -d ./dist
