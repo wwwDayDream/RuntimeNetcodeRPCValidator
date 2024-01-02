@@ -80,6 +80,11 @@ jobs:
       - name: Validate artifact exists
         run: test -d ./bin
 
+      - name: Setup .NET environment
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "8.0.100"
+
       - name: Publish to NuGet.org
         run: |
           dotnet nuget push bin/*.nupkg --api-key ${{ secrets.NUGET_API_TOKEN }} --source https://api.nuget.org/v3/index.json
@@ -97,6 +102,11 @@ jobs:
 
       - name: Validate artifact exists
         run: test -d ./dist
+
+      - name: Setup .NET environment
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "8.0.100"
 
       - name: Publish to Thunderstore
         env:
