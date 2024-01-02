@@ -32,7 +32,7 @@ namespace RuntimeNetcodeRPCValidator
             public static ulong SenderId;
         }
 
-        private static T LogErrorAndReturn<T>(string error, T ret = default)
+        internal static T LogErrorAndReturn<T>(string error, T ret = default)
         {
             Plugin.Log.LogError(error);
             return ret;
@@ -40,7 +40,14 @@ namespace RuntimeNetcodeRPCValidator
         /// <summary>
         /// Retrieves the last remote procedure call (RPC) sender.
         /// </summary>
-        public static ulong LastSenderId => RpcData.SenderId; 
+        public static ulong LastSenderId => RpcData.SenderId;
+
+        public static void SyncWithNetworkObject(this NetworkBehaviour networkBehaviour)
+        {
+            if (!networkBehaviour.NetworkObject.ChildNetworkBehaviours.Contains(networkBehaviour))
+                networkBehaviour.NetworkObject.ChildNetworkBehaviours.Add(networkBehaviour);
+            networkBehaviour.UpdateNetworkProperties();
+        }
         
         private static bool MethodPatchInternal(NetworkBehaviour networkBehaviour, MethodBase original, object[] args)
         {

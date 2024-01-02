@@ -38,7 +38,7 @@ namespace RuntimeNetcodeRPCValidator
             {
                 CustomMessageHandlers[i] = $"Net.{allTypes[i].Name}";
 
-                Patches.Add((AccessTools.Constructor(allTypes[i]), new HarmonyMethod(typeof(Plugin), nameof(Plugin.UpdateNetworkProperties)), false));
+                Patches.Add((AccessTools.Constructor(allTypes[i]), new HarmonyMethod(typeof(Plugin), nameof(Plugin.OnNetworkBehaviourConstructed)), false));
             }
             foreach (var method in allTypes.SelectMany(type =>
                          type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)))
@@ -97,8 +97,7 @@ namespace RuntimeNetcodeRPCValidator
             AlreadyRegistered.Remove(pluginType);
             Validators.Remove(this);
             if (NetworkManager.Singleton)
-                foreach (var customMessageHandler in CustomMessageHandlers)
-                    NetworkManager.Singleton.CustomMessagingManager.UnregisterNamedMessageHandler(customMessageHandler);
+                NetworkManagerShutdown();
 
             if (Patcher.GetPatchedMethods().Any())
                 UnpatchSelf();
@@ -131,21 +130,14 @@ namespace RuntimeNetcodeRPCValidator
                 netcodeValidator.NetworkManagerShutdown();
         }
 
-        internal static void UpdateNetworkProperties(object __instance)
+        internal static void OnNetworkBehaviourConstructed(object __instance)
         {
-            (__instance as NetworkBehaviour)?.StartCoroutine(YieldUntilIsSpawned((NetworkBehaviour)__instance));
-        }
-
-        private static IEnumerator YieldUntilIsSpawned(NetworkBehaviour networkBehaviour)
-        {
-            yield return new WaitUntil(() => networkBehaviour.NetworkObject != null && networkBehaviour.NetworkManager != null);
-            
-            if (!networkBehaviour.NetworkObject.ChildNetworkBehaviours.Contains(networkBehaviour))
-                networkBehaviour.NetworkObject.ChildNetworkBehaviours.Add(networkBehaviour);
-            
-            Debug.Log($"{networkBehaviour.NetworkObjectId}");
-            networkBehaviour.UpdateNetworkProperties();
-            Debug.Log($"{networkBehaviour.NetworkObjectId} {networkBehaviour.IsHost}");
+            if (!(__instance is NetworkBehaviour networkBehaviour))
+                return;
+            if (networkBehaviour.NetworkObject == null || networkBehaviour.NetworkManager == null &&
+                NetworkBehaviourExtensions.LogErrorAndReturn($"NetworkBehaviour {__instance.GetType()} is trying to sync with the NetworkObject but the {(networkBehaviour.NetworkObject == null ? "NetworkObject" : "NetworkManager")} is null!", true))
+                return;
+            networkBehaviour.SyncWithNetworkObject();
         }
     }
 
