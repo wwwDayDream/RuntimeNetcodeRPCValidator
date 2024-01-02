@@ -39,9 +39,9 @@
         <PropertyGroup>
             <PlainVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch)</PlainVersion>
         </PropertyGroup>
-        <Exec Command="tcli build --config-path $(ProjectDir)assets/thunderstore.toml --package-version $(PlainVersion)"/>
+        <Exec Command="tcli build --config-path $(SolutionDir)assets/thunderstore.toml --package-version $(PlainVersion)"/>
         <ItemGroup>
-            <FilesToRename Include="$(ProjectDir)bin/Debug/netstandard2.1/*-$(PlainVersion).zip"/>
+            <FilesToRename Include="$(SolutionDir)bin/Debug/netstandard2.1/*-$(PlainVersion).zip"/>
         </ItemGroup>
         <Move SourceFiles="@(FilesToRename)" DestinationFiles="@(FilesToRename -&gt; Replace($(PlainVersion), $(MinVerVersion)))"/>
     </Target>
