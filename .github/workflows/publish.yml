@@ -55,6 +55,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Fetch Sources
+        uses: actions/checkout@v4  
+      
       - name: Download all artifacts
         uses: actions/download-artifact@v4
 
@@ -77,6 +80,11 @@ jobs:
       - name: Validate artifact exists
         run: test -d ./bin
 
+      - name: Setup .NET environment
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "8.0.100"
+
       - name: Publish to NuGet.org
         run: |
           dotnet nuget push bin/*.nupkg --api-key ${{ secrets.NUGET_API_TOKEN }} --source https://api.nuget.org/v3/index.json
@@ -86,6 +94,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Fetch Sources
+        uses: actions/checkout@v4
+        
       - name: Download Thunderstore artifact
         uses: actions/download-artifact@v4
         with:
@@ -94,6 +105,15 @@ jobs:
 
       - name: Validate artifact exists
         run: test -d ./dist
+
+      - name: Setup .NET environment
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "8.0.100"
+
+      - name: Install Thunderstore CLI
+        run: |
+          dotnet tool install -g tcli
 
       - name: Publish to Thunderstore
         env:
