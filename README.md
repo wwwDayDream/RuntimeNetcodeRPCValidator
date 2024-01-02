@@ -1,5 +1,5 @@
 # Runtime Unity Netcode Patcher
-
+[![Build](https://github.com/NicholasScott1337/RuntimeNetcodeRPCValidator/actions/workflows/build.yml/badge.svg)](https://github.com/NicholasScott1337/RuntimeNetcodeRPCValidator/actions/workflows/build.yml)
 
 This plugin offers an easy-to-use solution for Netcode's NetworkBehaviour class, streamlining the approach to networking mods with Server and Client RPCs. By utilizing the CustomMessagingHandler of Netcode, it networks RPCs and their System.Serializable (Marked with [Serializable]) or INetworkSerializable parameters. While this is currently only in the Lethal Company directory, it can be expanded to other games upon request. Please reach out on Discord or via an issue here on Github for questions or contact.
 
