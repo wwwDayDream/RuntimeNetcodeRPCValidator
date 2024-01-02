@@ -17,7 +17,7 @@ BepInEx-BepInExPack = "5.4.2100"
 [build]
 icon = "./icon.png"
 readme = "../README.md"
-outdir = "../bin/Debug/netstandard2.1"
+outdir = "../dist/"
 
 [[build.copy]]
 source  = "../bin/Debug/netstandard2.1/NicholaScott.BepInEx.RuntimeNetcodeRPCValidator.dll"
