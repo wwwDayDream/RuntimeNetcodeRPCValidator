@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.8
+
+### Fixed
+
+- Pretty big README.md fix!
+
 ## v0.1.7
 
 ### Fixed

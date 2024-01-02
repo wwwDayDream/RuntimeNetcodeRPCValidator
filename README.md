@@ -27,6 +27,8 @@ To integrate Runtime Unity Netcode Patcher in your Unity project, follow these s
 ```csharp
 // Example of using NetcodeValidator
 namespace SomePlugin {
+    [BepInPlugin("My.Plugin.Guid", "My Plugin Name", "0.1.1")]
+    [BepInDependency(RuntimeNetcodeRPCValidator.MyPluginInfo.PLUGIN_GUID, RuntimeNetcodeRPCValidator.MyPluginInfo.PLUGIN_VERSION)]
     public class MyPlugin : BaseUnityPlugin {
         private NetcodeValidator netcodeValidator;
         
@@ -73,7 +75,7 @@ namespace SomePlugin {
         }
         public void Awake()
         {
-            if (NetworkManager.Instance.IsHost)
+            if (IsHost)
                 RunClientRpc();
         }
     }
