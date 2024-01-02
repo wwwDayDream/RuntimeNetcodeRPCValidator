@@ -54,7 +54,7 @@ namespace SomePlugin {
     private static class Patch {
         [HarmonyPrefix]
         private static void AddToTerminalObject(Terminal __instance) {
-            
+            __instance.gameObject.AddComponent<PluginNetworkingInstance>();
         }
     }
     public class PluginNetworkingInstance : NetworkBehaviour {
@@ -73,7 +73,7 @@ namespace SomePlugin {
         }
         public void Awake()
         {
-            if (IsHost)
+            if (NetworkManager.Instance.IsHost)
                 RunClientRpc();
         }
     }

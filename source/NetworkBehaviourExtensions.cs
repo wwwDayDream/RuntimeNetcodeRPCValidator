@@ -34,7 +34,7 @@ namespace RuntimeNetcodeRPCValidator
 
         private static T LogErrorAndReturn<T>(string error, T ret = default)
         {
-            Plugin.Logger.LogError(error);
+            Plugin.Log.LogError(error);
             return ret;
         }
         /// <summary>

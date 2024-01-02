@@ -37,8 +37,12 @@
         <PropertyGroup>
             <PreBuildPowerShellScriptPath>$(ProjectDir)PreBuild-GenerateUserSettings.ps1</PreBuildPowerShellScriptPath>
             <PreBuildPowerShellCommand>START /wait powershell -command &quot;$(PreBuildPowerShellScriptPath) '$(ProjectPath)' '$(ProjectDir)'&quot;</PreBuildPowerShellCommand>
+            <PreBuildPluginInfoLocation>$(Projectdir)source\PluginInfo.cs</PreBuildPluginInfoLocation>
+            <PreBuildVersionRegexFind>(?:public const string Version = \W)\d\.\d\.\d(?:\W;)</PreBuildVersionRegexFind>
+            <PreBuildImplementVersionNumber>powershell -command &quot;(Get-Content '$(PreBuildPluginInfoLocation)') -replace '$(PreBuildVersionRegexFind)', 'public const string Version = &quot;&quot;&quot;$(BuildVersion)&quot;&quot;&quot;;' | Set-Content '$(PreBuildPluginInfoLocation)'&quot;</PreBuildImplementVersionNumber>
         </PropertyGroup>
         <Exec Condition="!Exists('$(ProjectPath).user')" Command="$(PreBuildPowerShellCommand)" />
+        <Exec Command="$(PreBuildImplementVersionNumber)"/>
     </Target>
 
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
@@ -48,6 +52,6 @@
             <CopyFilesCommand>xcopy &quot;$(TargetPath)&quot; &quot;$(ModsFolderPath)&quot; /Y /E /I</CopyFilesCommand>
         </PropertyGroup>
         <Exec Command="$(RemoveDirectoryCommand)&#xA;$(CopyFilesCommand)"/>
-        <!-- <Exec Command="tcli build \-\-config-path ./assets/thunderstore.toml \-\-package-version "/> -->
+        <Exec Command="tcli build --config-path .\assets\thunderstore.toml --package-version $(BuildVersion)"/>
     </Target>
 </Project>

@@ -2,6 +2,7 @@
 <Project ToolsVersion="Current">
     <!-- User specific . -->
     <PropertyGroup>
+        <BuildVersion>0.1.1</BuildVersion>
         <GameLocation>@(GAMEDIR)</GameLocation>
         <BepInExLocation>@(BEPINDIR)</BepInExLocation>
     </PropertyGroup>

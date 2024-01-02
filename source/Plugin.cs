@@ -109,17 +109,16 @@ namespace RuntimeNetcodeRPCValidator
     public class Plugin : BaseUnityPlugin
     {
         private readonly Harmony harmony = new Harmony(PluginInfo.GUID);
-        public new static ManualLogSource Logger { get; private set; } = null!;
+        public static ManualLogSource Log { get; private set; } = null!;
 
         private void Awake()
         {
-            Logger = Logger;
+            Log = Logger;
             harmony.Patch(AccessTools.Method(typeof(NetworkManager), nameof(NetworkManager.Initialize)),
                 postfix: new HarmonyMethod(typeof(Plugin), nameof(OnNetworkManagerInitialized)));
             harmony.Patch(AccessTools.Method(typeof(NetworkManager), nameof(NetworkManager.Shutdown)),
                 postfix: new HarmonyMethod(typeof(Plugin), nameof(OnNetworkManagerShutdown)));
         }
-
         private static void OnNetworkManagerInitialized()
         {
             foreach (var netcodeValidator in NetcodeValidator.Validators)
@@ -139,13 +138,14 @@ namespace RuntimeNetcodeRPCValidator
 
         private static IEnumerator YieldUntilIsSpawned(NetworkBehaviour networkBehaviour)
         {
-            yield return new WaitUntil(() => networkBehaviour.NetworkObject.IsSpawned);
-            Debug.Log("Verifying as registered with network object.");
+            yield return new WaitUntil(() => networkBehaviour.NetworkObject != null && networkBehaviour.NetworkManager != null);
             
             if (!networkBehaviour.NetworkObject.ChildNetworkBehaviours.Contains(networkBehaviour))
                 networkBehaviour.NetworkObject.ChildNetworkBehaviours.Add(networkBehaviour);
             
+            Debug.Log($"{networkBehaviour.NetworkObjectId}");
             networkBehaviour.UpdateNetworkProperties();
+            Debug.Log($"{networkBehaviour.NetworkObjectId} {networkBehaviour.IsHost}");
         }
     }
 
