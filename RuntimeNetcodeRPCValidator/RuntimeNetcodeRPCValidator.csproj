@@ -5,8 +5,13 @@
         <MinVerTagPrefix>v</MinVerTagPrefix>
         <AssemblyName>NicholaScott.BepInEx.RuntimeNetcodeRPCValidator</AssemblyName>
         <Product>RuntimeNetcodeRPCValidator</Product>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
-
+    <ItemGroup>
+        <None Include="../README.md" Pack="true" PackagePath="/" />
+        <None Include="../CHANGELOG.md" Pack="true" PackagePath="/" />
+        <None Include="../LICENSE" Pack="true" PackagePath="/" />
+    </ItemGroup>
     <ItemGroup>
         <PackageReference Include="BepInEx.Analyzers" Version="1.0.8" PrivateAssets="all"/>
         <PackageReference Include="BepInEx.Core" Version="5.4.21"/>
