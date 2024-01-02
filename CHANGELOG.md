@@ -11,7 +11,7 @@
 
 - Reorganized error reporting in `NetworkBehaviourExtensions.cs`, now utilizing `LogErrorAndReturn` to improve coding practices.
 - Pruned extraneous variables in `RpcData` struct.
-- Modified package dependencies in `.csproj` file, removing unnecessary ones and adding a suplimental package reference.
+- Modified package dependencies in `.csproj` file, removing unnecessary ones and adding a supplemental package reference.
 
 ## v0.1.0
 

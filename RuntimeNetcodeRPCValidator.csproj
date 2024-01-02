@@ -2,56 +2,51 @@
     <PropertyGroup>
         <TargetFramework>netstandard2.1</TargetFramework>
         <RunPostBuildEvent>Always</RunPostBuildEvent>
+        <AssemblyName>NicholaScott.BepInEx.RuntimeNetcodeRPCValidator</AssemblyName>
+        <Product>RuntimeNetcodeRPCValidator</Product>
     </PropertyGroup>
     
+    <Target Name="SetPluginVersion" BeforeTargets="AddGeneratedFile" DependsOnTargets="MinVer">
+        <PropertyGroup>
+            <BepInExPluginVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch)</BepInExPluginVersion>
+        </PropertyGroup>
+    </Target>
+    
     <ItemGroup>
-        <PackageReference Include="UnityEngine.Modules" Version="2022.3.9" />
-        <Reference Include="0Harmony">
-            <HintPath>$(BepInExLocation)\core\0Harmony.dll</HintPath>
-        </Reference>
-        <Reference Include="BepInEx">
-            <HintPath>$(BepInExLocation)\core\BepInEx.dll</HintPath>
-        </Reference>
-        <Reference Include="Unity.Collections">
-            <HintPath>$(GameLocation)\Lethal Company_Data\Managed\Unity.Collections.dll</HintPath>
-        </Reference>
-        <Reference Include="Unity.Netcode.Runtime">
-            <HintPath>$(GameLocation)\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll</HintPath>
-        </Reference>
-        <Content Include="RuntimeNetcodeRPCValidator.csproj.user" />
+        <PackageReference Include="BepInEx.Analyzers" Version="1.0.8" PrivateAssets="all"/>
+        <PackageReference Include="BepInEx.Core" Version="5.4.21"/>
+        <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0"/>
     </ItemGroup>
     <ItemGroup>
         <None Remove=".gitattributes" />
         <None Remove=".gitignore" />
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="UnityEngine.Modules" Version="2022.3.9" />
+        <Reference Include="Unity.Collections">
+            <HintPath>$(GameLocation)\Lethal Company_Data\Managed\Unity.Collections.dll</HintPath>
+        </Reference>
+        <Reference Include="Unity.Netcode.Runtime">
+            <HintPath>$(GameLocation)\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll</HintPath>
+        </Reference>
+    </ItemGroup>
 
     <!-- Publicizer -->
     <ItemGroup>
         <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" />
         <Publicize Include="Unity.Netcode.Runtime"/>
     </ItemGroup>
-    
-    <!-- Build Events -->
-    <Target Name="PreBuild" AfterTargets="PreBuildEvent">
-        <PropertyGroup>
-            <PreBuildPowerShellScriptPath>$(ProjectDir)PreBuild-GenerateUserSettings.ps1</PreBuildPowerShellScriptPath>
-            <PreBuildPowerShellCommand>START /wait powershell -command &quot;$(PreBuildPowerShellScriptPath) '$(ProjectPath)' '$(ProjectDir)'&quot;</PreBuildPowerShellCommand>
-            <PreBuildPluginInfoLocation>$(Projectdir)source\PluginInfo.cs</PreBuildPluginInfoLocation>
-            <PreBuildVersionRegexFind>(?:public const string Version = \W)\d\.\d\.\d(?:\W;)</PreBuildVersionRegexFind>
-            <PreBuildImplementVersionNumber>powershell -command &quot;(Get-Content '$(PreBuildPluginInfoLocation)') -replace '$(PreBuildVersionRegexFind)', 'public const string Version = &quot;&quot;&quot;$(BuildVersion)&quot;&quot;&quot;;' | Set-Content '$(PreBuildPluginInfoLocation)'&quot;</PreBuildImplementVersionNumber>
-        </PropertyGroup>
-        <Exec Condition="!Exists('$(ProjectPath).user')" Command="$(PreBuildPowerShellCommand)" />
-        <Exec Command="$(PreBuildImplementVersionNumber)"/>
-    </Target>
 
-    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Target Name="PackThunderstore" AfterTargets="Publish">
+        <Message Importance="high" Text="MinVer version is $(MinVerVersion)"/>
         <PropertyGroup>
-            <ModsFolderPath>$(BepInExLocation)\plugins\$(ProjectName)\</ModsFolderPath>
-            <RemoveDirectoryCommand>rd /s /q &quot;$(ModsFolderPath)&quot; 2&gt;nul</RemoveDirectoryCommand>
-            <CopyFilesCommand>xcopy &quot;$(TargetPath)&quot; &quot;$(ModsFolderPath)&quot; /Y /E /I</CopyFilesCommand>
+            <PlainVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch)</PlainVersion>
         </PropertyGroup>
-        <Exec Command="$(RemoveDirectoryCommand)&#xA;$(CopyFilesCommand)"/>
-        <Exec Command="tcli build --config-path .\assets\thunderstore.toml --package-version $(BuildVersion)"/>
+        <Exec Command="tcli build --config-path $(ProjectDir)assets/thunderstore.toml --package-version $(PlainVersion)"/>
+        <ItemGroup>
+            <FilesToRename Include="$(ProjectDir)bin/Debug/netstandard2.1/*-$(PlainVersion).zip"/>
+        </ItemGroup>
+        <Move SourceFiles="@(FilesToRename)" DestinationFiles="@(FilesToRename -&gt; Replace($(PlainVersion), $(MinVerVersion)))"/>
     </Target>
 </Project>
