@@ -1,5 +1,18 @@
-# Ignore user files
-**.user
-/bin/
-/obj/
-RuntimeNetcodeRPCValidator.csproj.DotSettings
+/*
+
+!RuntimeNetcodePatcher.sln
+!assets/
+
+!README.md
+!CHANGELOG.md
+
+!NuGet.Config
+!Directory.Build.Props
+
+!.gitignore
+!.gitattributes
+!.github
+
+!RuntimeNetcodeRPCValidator/
+RuntimeNetcodeRPCValidator/[Bb]in
+RuntimeNetcodeRPCValidator/[Oo]bj

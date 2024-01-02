@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="Current">
-    <!-- User specific . -->
-    <PropertyGroup>
-        <GameLocation>@(GAMEDIR)</GameLocation>
-        <BepInExLocation>@(BEPINDIR)</BepInExLocation>
-    </PropertyGroup>
-</Project>
