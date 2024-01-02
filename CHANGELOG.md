@@ -1,17 +1,11 @@
 # Changelog
 
-## v0.1.5
+## v0.1.6
 
 ### Fixed
 
 - Incorrect error logging in a few places.
 - Project structure was out of control. It's now.. In control.
-
-### Changed
-
-- Reorganized error reporting in `NetworkBehaviourExtensions.cs`, now utilizing `LogErrorAndReturn` to improve coding practices.
-- Pruned extraneous variables in `RpcData` struct.
-- Modified package dependencies in `.csproj` file, removing unnecessary ones and adding a supplemental package reference.
 
 ## v0.1.1
 
