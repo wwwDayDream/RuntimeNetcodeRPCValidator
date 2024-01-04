@@ -21,8 +21,8 @@ namespace RuntimeNetcodeRPCValidator
         private const string MethodLacksSuffixConst =
             "Can't patch method {0}.{1} because it's name doesn't end with '{2}'!";
 
-        private const string SuccessfullyPatchedRpcConst =
-            "Patching {0}.{1} as {2}.";
+        private const string SuccessfullyPatchedTypeConst =
+            "Patched {0} ServerRPC{1} & {2} ClientRPC{3} on NetworkBehaviour {4}.";
 
         private const string NotOwnerOfNetworkObjectConst =
             "{0} tried to run ServerRPC {1} but not the owner of NetworkObject {2}";
@@ -74,10 +74,10 @@ namespace RuntimeNetcodeRPCValidator
         internal static string MethodLacksSuffix(MethodBase method) =>
             string.Format(MethodLacksSuffixConst, method.DeclaringType?.Name, method.Name,
                 method.GetCustomAttribute<ServerRpcAttribute>() != null ? "ServerRpc" : "ClientRpc");
-        
-        internal static string SuccessfullyPatchedRpc(MethodBase method) => 
-            string.Format(SuccessfullyPatchedRpcConst, method.DeclaringType?.Name, method.Name,
-                method.GetCustomAttribute<ServerRpcAttribute>() != null ? "ServerRpc" : "ClientRpc");
+
+        internal static string SuccessfullyPatchedType(Type networkType, int serverRpcCount, int clientRpcCount) =>
+            string.Format(SuccessfullyPatchedTypeConst, serverRpcCount, serverRpcCount == 1 ? "" : "s",
+                clientRpcCount, clientRpcCount == 1 ? "" : "s", networkType.Name);
 
         internal static string NotOwnerOfNetworkObject(string whoIsNotOwner, MethodBase method, NetworkObject networkObject) =>
             string.Format(NotOwnerOfNetworkObjectConst, whoIsNotOwner, method.Name, networkObject.NetworkObjectId);

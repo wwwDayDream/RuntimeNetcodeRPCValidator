@@ -51,50 +51,58 @@ namespace RuntimeNetcodeRPCValidator
             networkBehaviour.SyncWithNetworkObject();
         }
 
-        private void Patch(MethodInfo rpcMethod)
+        private bool Patch(MethodInfo rpcMethod, out bool isServerRpc, out bool isClientRpc)
         {
-            var isServerRpc = rpcMethod.GetCustomAttributes<ServerRpcAttribute>().Any();
-            var isClientRpc = rpcMethod.GetCustomAttributes<ClientRpcAttribute>().Any();
+            isServerRpc = rpcMethod.GetCustomAttributes<ServerRpcAttribute>().Any();
+            isClientRpc = rpcMethod.GetCustomAttributes<ClientRpcAttribute>().Any();
             var endsWithServerRpc = rpcMethod.Name.EndsWith("ServerRpc");
             var endsWithClientRpc = rpcMethod.Name.EndsWith("ClientRpc");
             if (!isClientRpc && !isServerRpc && !endsWithClientRpc && !endsWithServerRpc)
-                return;
+                return false;
             if ((!isServerRpc && endsWithServerRpc) || (!isClientRpc && endsWithClientRpc))
             {
                 Plugin.LogSource.LogError(TextHandler.MethodLacksRpcAttribute(rpcMethod));
-                return;
+                return false;
             }
             if ((isServerRpc && !endsWithServerRpc) || (isClientRpc && !endsWithClientRpc))
             {
                 Plugin.LogSource.LogError(TextHandler.MethodLacksSuffix(rpcMethod));
-                return;
+                return false;
             }
-            Plugin.LogSource.LogInfo(TextHandler.SuccessfullyPatchedRpc(rpcMethod));
             Patcher.Patch(rpcMethod,
                 new HarmonyMethod(typeof(NetworkBehaviourExtensions),
                     nameof(NetworkBehaviourExtensions.MethodPatch)));
+            return true;
         }
 
         /// <summary>
         /// Applies dynamic patches to the specified NetworkBehaviour.
         /// </summary>
-        /// <param name="networkBehaviour">The type of NetworkBehaviour to patch</param>
+        /// <param name="netBehaviourTyped">The type of NetworkBehaviour to patch</param>
         /// <exception cref="NotNetworkBehaviourException">Thrown when the specified type is not derived from NetworkBehaviour</exception>
-        public void Patch(Type networkBehaviour)
+        public void Patch(Type netBehaviourTyped)
         {
-            if (networkBehaviour.BaseType != typeof(NetworkBehaviour))
-                throw new NotNetworkBehaviourException(networkBehaviour);
+            if (netBehaviourTyped.BaseType != typeof(NetworkBehaviour))
+                throw new NotNetworkBehaviourException(netBehaviourTyped);
 
             Patcher.Patch(
-                AccessTools.Constructor(networkBehaviour),
+                AccessTools.Constructor(netBehaviourTyped),
                 new HarmonyMethod(typeof(NetcodeValidator), nameof(OnNetworkBehaviourConstructed)));
             
-            CustomMessageHandlers.Add($"{TypeCustomMessageHandlerPrefix}.{networkBehaviour.Name}");
+            CustomMessageHandlers.Add($"{TypeCustomMessageHandlerPrefix}.{netBehaviourTyped.Name}");
             OnAddedNewCustomMessageHandler(CustomMessageHandlers.Last());
 
-            foreach (var method in networkBehaviour.GetMethods(BindingFlags.Instance | BindingFlags.Public |
+            var serverRPCsPatched = 0;
+            var clientRPCsPatched = 0;
+            foreach (var method in netBehaviourTyped.GetMethods(BindingFlags.Instance | BindingFlags.Public |
                                                                BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
-                Patch(method);
+            {
+                if (!Patch(method, out var isServerRpc, out var isClientRpc)) continue;
+                serverRPCsPatched += isServerRpc ? 1 : 0;
+                clientRPCsPatched += isClientRpc ? 1 : 0;
+            }
+            
+            Plugin.LogSource.LogInfo(TextHandler.SuccessfullyPatchedType(netBehaviourTyped, serverRPCsPatched, clientRPCsPatched));
         }
 
         /// <summary>

@@ -36,12 +36,6 @@ namespace UnitTester
         }
 
         /// <summary>
-        /// Just an empty implementation of a valid ClientRpc
-        /// </summary>
-        [ClientRpc]
-        private void TestClientRpc() {}
-        
-        /// <summary>
         /// Here is the unit testing for owner checks && some error validation.
         /// </summary>
         [ClientRpc]
@@ -51,7 +45,8 @@ namespace UnitTester
             NotRequiredOwnershipServerRpc();
             MustBeOwnerServerRpc();
             Plugin.LogSource.LogInfo("Testing attempting to run ClientRpc from a Client.");
-            TestClientRpc();
+            if (!IsHost || !IsServer)
+                ValidClientRpc();
         }
         
         /// <summary>
