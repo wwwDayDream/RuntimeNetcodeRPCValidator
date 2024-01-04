@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using HarmonyLib;
 using Unity.Netcode;
 
@@ -38,10 +39,13 @@ namespace RuntimeNetcodeRPCValidator
         {
             if (!(__instance is NetworkBehaviour networkBehaviour))
                 return;
+            if (networkBehaviour.NetworkObject == null)
+            {
+                Plugin.LogSource.LogError(TextHandler.BehaviourLacksNetworkObject(__instance.GetType().Name));
+            }
             if (networkBehaviour.NetworkObject == null || networkBehaviour.NetworkManager == null)
             {
-                Plugin.LogSource.LogError(
-                    $"NetworkBehaviour {__instance.GetType()} is trying to sync with the NetworkObject but the {(networkBehaviour.NetworkObject == null ? "NetworkObject" : "NetworkManager")} is null!");
+                Plugin.LogSource.LogError(TextHandler.NoNetworkManagerPresentToSyncWith(__instance.GetType().Name));
                 return;
             }
             networkBehaviour.SyncWithNetworkObject();
@@ -55,28 +59,17 @@ namespace RuntimeNetcodeRPCValidator
             var endsWithClientRpc = rpcMethod.Name.EndsWith("ClientRpc");
             if (!isClientRpc && !isServerRpc && !endsWithClientRpc && !endsWithServerRpc)
                 return;
-            if (!isServerRpc && endsWithServerRpc)
+            if ((!isServerRpc && endsWithServerRpc) || (!isClientRpc && endsWithClientRpc))
             {
-                Plugin.LogSource.LogError($"Can't patch method {rpcMethod.DeclaringType?.Name}.{rpcMethod.Name} because it lacks a [ServerRpc] attribute.");
+                Plugin.LogSource.LogError(TextHandler.MethodLacksRpcAttribute(rpcMethod));
                 return;
             }
-            if (!isClientRpc && endsWithClientRpc)
+            if ((isServerRpc && !endsWithServerRpc) || (isClientRpc && !endsWithClientRpc))
             {
-                Plugin.LogSource.LogError($"Can't patch method {rpcMethod.DeclaringType?.Name}.{rpcMethod.Name} because it lacks a [ClientRpc] attribute.");
+                Plugin.LogSource.LogError(TextHandler.MethodLacksSuffix(rpcMethod));
                 return;
             }
-            if (isServerRpc && !endsWithServerRpc)
-            {
-                Plugin.LogSource.LogError($"Can't patch method {rpcMethod.DeclaringType?.Name}.{rpcMethod.Name} because it's name doesn't end with 'ServerRpc'!");
-                return;
-            }
-            if (isClientRpc && !endsWithClientRpc)
-            {
-                Plugin.LogSource.LogError($"Can't patch method {rpcMethod.DeclaringType?.Name}.{rpcMethod.Name} because it's name doesn't end with 'ClientRpc'!");
-                return;
-            }
-                
-            Plugin.LogSource.LogInfo($"Patching {rpcMethod.DeclaringType?.Name}.{rpcMethod.Name} as {(isServerRpc ? "Server" : "Client")}Rpc.");
+            Plugin.LogSource.LogInfo(TextHandler.SuccessfullyPatchedRpc(rpcMethod));
             Patcher.Patch(rpcMethod,
                 new HarmonyMethod(typeof(NetworkBehaviourExtensions),
                     nameof(NetworkBehaviourExtensions.MethodPatch)));

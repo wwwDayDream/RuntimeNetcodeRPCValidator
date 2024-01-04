@@ -15,6 +15,9 @@
         <PackageReference Include="BepInEx.Analyzers" Version="1.0.8" PrivateAssets="all"/>
         <PackageReference Include="BepInEx.Core" Version="5.4.21"/>
         <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0"/>
+        <PackageReference Include="UnityEngine.Modules" Version="2022.3.9" />
+        <PackageReference Include="LethalCompany.GameLibs.Steam" Version="45.0.2-alpha.1" />
+        <PackageReference Include="MinVer" Version="4.3.0"/>
     </ItemGroup>
     
     <!-- BepInEx.PluginVersionInfo -->
@@ -23,13 +26,8 @@
             <BepInExPluginVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch)</BepInExPluginVersion>
         </PropertyGroup>
     </Target>
-
-    <ItemGroup>
-        <PackageReference Include="UnityEngine.Modules" Version="2022.3.9" />
-        <PackageReference Include="LethalCompany.GameLibs.Steam" Version="45.0.2-alpha.1" />
-        <PackageReference Include="MinVer" Version="4.3.0"/>
-    </ItemGroup>
-
+    
+    
     <!-- Publicizer -->
     <ItemGroup>
         <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" />

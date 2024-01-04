@@ -102,21 +102,20 @@ namespace RuntimeNetcodeRPCValidator
                 else if (paramInfo.ParameterType.IsSerializable)
                     fastBufferWriter.WriteSystemSerializable(paramInst);
                 else
-                    throw new SerializationException(
-                        $"[Network] {paramInfo.ParameterType.DeclaringType}.{paramInfo.ParameterType.Name} is not marked [Serializable] or implements INetworkSerializable");
+                    throw new SerializationException(TextHandler.ObjectNotSerializable(paramInfo));
             }
         }
 
         private const BindingFlags BindingAll = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-        public static MethodInfo ReadMethodInfoAndParameters(this FastBufferReader fastBufferReader, Type methodDeclaringType, ref object[] args)
+        public static MethodInfo ReadMethodInfoAndParameters(this FastBufferReader fastBufferReader, 
+            Type methodDeclaringType, ref object[] args)
         {
             fastBufferReader.ReadValueSafe(out string methodName);
             fastBufferReader.ReadValueSafe(out int paramCount);
 
             var method = methodDeclaringType.GetMethod(methodName, BindingAll);
             if (paramCount != method?.GetParameters().Length)
-                throw new Exception("[Network] NetworkBehaviour received an RPC" +
-                                    $" but the number of parameters sent {paramCount} != MethodInfo param count {method?.GetParameters().Length}");
+                throw new Exception(TextHandler.InconsistentParameterCount(method, paramCount));
             for (var i = 0; i < paramCount; i++)
             {
                 fastBufferReader.ReadValueSafe(out bool isNull);
@@ -130,8 +129,7 @@ namespace RuntimeNetcodeRPCValidator
                 else if (paramInfo.ParameterType.IsSerializable)
                     fastBufferReader.ReadSystemSerializable(out serializable);
                 else
-                    throw new SerializationException(
-                        $"[Network] {paramInfo.ParameterType.DeclaringType}.{paramInfo.ParameterType.Name} is not marked [Serializable] or implements INetworkSerializable");
+                    throw new SerializationException(TextHandler.ObjectNotSerializable(paramInfo));
                 args[i] = serializable;
             }
 

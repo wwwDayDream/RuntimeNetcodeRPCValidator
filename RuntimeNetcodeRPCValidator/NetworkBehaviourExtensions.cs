@@ -1,9 +1,8 @@
-using System;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using Unity.Collections;
 using Unity.Netcode;
-using UnityEngine;
 
 namespace RuntimeNetcodeRPCValidator
 {
@@ -28,69 +27,95 @@ namespace RuntimeNetcodeRPCValidator
                 networkBehaviour.NetworkObject.ChildNetworkBehaviours.Add(networkBehaviour);
             networkBehaviour.UpdateNetworkProperties();
         }
+
+        private static bool ValidateRPCMethod(NetworkBehaviour networkBehaviour, 
+            MethodBase method, RpcState state, out RpcAttribute rpcAttribute)
+        {
+            var isServerRpcAttr = method.GetCustomAttributes<ServerRpcAttribute>().Any();
+            var isClientRpcAttr = method.GetCustomAttributes<ClientRpcAttribute>().Any();
+            var requiresOwnership = isServerRpcAttr && 
+                                    method.GetCustomAttribute<ServerRpcAttribute>().RequireOwnership;
+
+            rpcAttribute = isServerRpcAttr
+                ? (RpcAttribute)method.GetCustomAttribute<ServerRpcAttribute>()
+                : method.GetCustomAttribute<ClientRpcAttribute>();
+            
+            if (requiresOwnership && networkBehaviour.OwnerClientId != NetworkManager.Singleton.LocalClientId)
+            {
+                Plugin.LogSource.LogError(
+                    TextHandler.NotOwnerOfNetworkObject(
+                        state == RpcState.FromUser ? "We" : "Client " + LastSenderId, 
+                        method, networkBehaviour.NetworkObject));
+                return false;
+            }
+            if (state == RpcState.FromUser && isClientRpcAttr &&
+                !(NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost))
+            {
+                Plugin.LogSource.LogError(TextHandler.CantRunClientRpcFromClient(method));
+                return false;
+            }
+            if (state == RpcState.FromUser && !isServerRpcAttr && !isClientRpcAttr)
+            {
+                Plugin.LogSource.LogError(TextHandler.MethodPatchedButLacksAttributes(method));
+                return false;
+            }
+            if (state == RpcState.FromNetworking && !isServerRpcAttr && !isClientRpcAttr)
+            {
+                Plugin.LogSource.LogError(TextHandler.MethodPatchedAndNetworkCalledButLacksAttributes(method));
+                return false;
+            }
+            if (state == RpcState.FromNetworking && isServerRpcAttr &&
+                !(networkBehaviour.IsServer || networkBehaviour.IsHost))
+            {
+                Plugin.LogSource.LogError(TextHandler.CantRunServerRpcAsClient(method));
+                return false;
+            }
+            
+            return true;
+        }
         
-        private static bool MethodPatchInternal(NetworkBehaviour networkBehaviour, MethodBase original, object[] args)
+        private static bool MethodPatchInternal(NetworkBehaviour networkBehaviour, MethodBase method, 
+            object[] args)
         {
             if (!NetworkManager.Singleton ||
                 !(NetworkManager.Singleton.IsListening || NetworkManager.Singleton.IsConnectedClient))
             {
-                Plugin.LogSource.LogError($"NetworkBehaviour {networkBehaviour.NetworkBehaviourId} tried to send a RPC but the NetworkManager {(NetworkManager.Singleton ? "isn't active!" : "is null!")}");
+                Plugin.LogSource.LogError(TextHandler.NoNetworkManagerPresentToSendRpc(networkBehaviour));
                 return false;
             }
 
             var rpcSource = RpcSource;
             RpcSource = RpcState.FromUser;
-            RpcAttribute rpcAttribute = (RpcAttribute)original.GetCustomAttribute<ServerRpcAttribute>() ?? original.GetCustomAttribute<ClientRpcAttribute>();
 
-            switch (rpcSource)
-            {
-                case RpcState.FromUser when rpcAttribute is ServerRpcAttribute { RequireOwnership: true } &&
-                                            networkBehaviour.OwnerClientId != NetworkManager.Singleton.LocalClientId:
-                {
-                    Plugin.LogSource.LogError(
-                        $"Tried to run ServerRPC {original.Name} but we're not the owner of NetworkObject {networkBehaviour.NetworkObjectId}");
-                    return false;
-                }
-                case RpcState.FromUser when rpcAttribute is ClientRpcAttribute &&
-                                            !(NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost):
-                {
-                    Plugin.LogSource.LogError(
-                        $"Tried to run ClientRpc {original.Name} but we're not a host!" +
-                        " You should only call ClientRpc(s) from inside a ServerRpc OR if you've checked with IsHost!");
-                    return false;
-                }
-                case RpcState.FromNetworking when rpcAttribute is ServerRpcAttribute &&
-                                                  !(networkBehaviour.IsServer || networkBehaviour.IsHost):
-                {
-                    Plugin.LogSource.LogError($"Received message to run ServerRPC {original.DeclaringType}.{original.Name} but we're a client!");
-                    return false;
-                }
-                case RpcState.FromUser:
-                    var writer = new FastBufferWriter((original.GetParameters().Length + 1) * 128, Allocator.Temp);
-                    writer.WriteValueSafe(networkBehaviour.NetworkObjectId);
-                    writer.WriteValueSafe(networkBehaviour.NetworkBehaviourId);
-
-                    writer.WriteMethodInfoAndParameters(original, args);
-
-                    var delivery = rpcAttribute.Delivery == RpcDelivery.Reliable
-                        ? NetworkDelivery.Reliable
-                        : NetworkDelivery.Unreliable;
+            if (rpcSource == RpcState.FromNetworking) return true;
             
-                    if (rpcAttribute is ServerRpcAttribute)
-                        NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage($"{NetcodeValidator.TypeCustomMessageHandlerPrefix}.{original.DeclaringType!.Name}", NetworkManager.ServerClientId, writer, delivery);
-                    else
-                        NetworkManager.Singleton.CustomMessagingManager.SendNamedMessageToAll($"{NetcodeValidator.TypeCustomMessageHandlerPrefix}.{original.DeclaringType!.Name}", writer, delivery);
+            if (!ValidateRPCMethod(networkBehaviour, method, rpcSource, out var rpcAttribute))
+                return false;
+                    
+            var writer = new FastBufferWriter((method.GetParameters().Length + 1) * 128, Allocator.Temp);
+            writer.WriteValueSafe(networkBehaviour.NetworkObjectId);
+            writer.WriteValueSafe(networkBehaviour.NetworkBehaviourId);
 
-                    return false;
-                case RpcState.FromNetworking when rpcAttribute != null:
-                    return true;
-                default:
-                {
-                    Plugin.LogSource.LogError($"NetworkBehaviour {networkBehaviour.NetworkBehaviourId} tried to validate {original.DeclaringType}.{original.Name}, " +
-                                              "and while it exists, the method is not marked with a corresponding RPCAttribute. Please prefix with ServerRPC or ClientRPC!");
-                    return false;
-                }
-            }
+            writer.WriteMethodInfoAndParameters(method, args);
+
+            var messageChannel = new StringBuilder(NetcodeValidator.TypeCustomMessageHandlerPrefix)
+                .Append(".")
+                .Append(method.DeclaringType!.Name).ToString();
+            var delivery = rpcAttribute.Delivery == RpcDelivery.Reliable
+                ? NetworkDelivery.Reliable
+                : NetworkDelivery.Unreliable;
+            
+            
+            
+            if (rpcAttribute is ServerRpcAttribute)
+                NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage(
+                    messageChannel, NetworkManager.ServerClientId, writer, delivery);
+            else
+                NetworkManager.Singleton.CustomMessagingManager.SendNamedMessageToAll(
+                    messageChannel, writer, delivery);
+
+            return false;
+
         }        
         
         internal static void ReceiveNetworkMessage(ulong sender, FastBufferReader reader)
@@ -104,36 +129,21 @@ namespace RuntimeNetcodeRPCValidator
             if (!NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(networkObjectId,
                     out var networkObject))
             {
-                Plugin.LogSource.LogError("An RPC called on a NetworkObject that is not in the spawned objects list." +
-                                          " Please make sure the NetworkObject is spawned before calling RPCs.");
+                Plugin.LogSource.LogError(TextHandler.RpcCalledBeforeObjectSpawned());
                 return;
             }
-
 
             var networkBehaviour = networkObject!.GetNetworkBehaviourAtOrderIndex(networkBehaviourId);
-            var method = networkBehaviour.GetType().GetMethod(rpcName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            const BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+            var method = networkBehaviour.GetType().GetMethod(rpcName, bindingFlags);
             if (method == null)
             {
-                Plugin.LogSource.LogError(
-                    $"NetworkBehaviour {networkBehaviour.NetworkBehaviourId} received RPC {rpcName}" +
-                    $" but that method doesn't exist on {networkBehaviour.GetType()}!");
+                Plugin.LogSource.LogError(TextHandler.NetworkCalledNonExistentMethod(networkBehaviour, rpcName));
                 return;
             }
 
-            var serverAttribute = method!.GetCustomAttribute<ServerRpcAttribute>();
-            if (serverAttribute != null && !networkBehaviour.IsHost && !networkBehaviour.IsServer)
-            {
-                Plugin.LogSource.LogError(
-                    $"NetworkBehaviour {networkBehaviour.NetworkBehaviourId} received ServerRPC {rpcName} but we're a client!");
+            if (!ValidateRPCMethod(networkBehaviour, method, RpcState.FromNetworking, out _))
                 return;
-            }
-
-            if ((serverAttribute?.RequireOwnership ?? false) && sender != networkObject.OwnerClientId)
-            {
-                Plugin.LogSource.LogError(
-                    $"NetworkBehaviour {networkBehaviour.NetworkBehaviourId} received ServerRPC but the sender wasn't the owner!");
-                return;
-            }
             
             RpcSource = RpcState.FromNetworking;
             LastSenderId = sender;
