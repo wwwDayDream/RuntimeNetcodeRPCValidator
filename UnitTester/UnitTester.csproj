@@ -26,7 +26,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\RuntimeNetcodeRPCValidator\RuntimeNetcodeRPCValidator.csproj" />
+      <ProjectReference Include="..\RuntimeNetcodeRPCValidator\RuntimeNetcodeRPCValidator.csproj"/>
     </ItemGroup>
 
 </Project>
