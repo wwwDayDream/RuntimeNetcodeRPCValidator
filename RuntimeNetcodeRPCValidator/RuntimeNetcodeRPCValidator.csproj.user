@@ -5,4 +5,10 @@
         <GameLocation>E:\Steam\steamapps\common\Lethal Company</GameLocation>
         <BepInExLocation>F:\R2ModMan\local\LethalCompany\profiles\Mod-Dev\BepInEx</BepInExLocation>
     </PropertyGroup>
+    <Target Name="PreBuild Clear Dist" AfterTargets="PreBuildEvent">
+        <Exec Command="rd /Q /S $(SolutionDir)\dist\" />
+    </Target>
+    <Target Name="PostBuild" AfterTargets="Publish">
+        <Exec Command="rd /Q /S $(BepInExLocation)\plugins\$(TargetName)\ 2>nul&#xA;powershell -command &quot;Expand-Archive -Path @(Get-ChildItem '$(SolutionDir)dist\*.zip')[0] -DestinationPath '$(BepInExLocation)\plugins\$(TargetName)\'&quot;" />
+    </Target>
 </Project>

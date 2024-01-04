@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <AssemblyName>NicholaScott.BepInEx.RNVTester</AssemblyName>
+        <Product>RNVTester</Product>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="BepInEx.Analyzers" Version="1.0.8" PrivateAssets="all"/>
+        <PackageReference Include="BepInEx.Core" Version="5.4.21"/>
+        <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0"/>
+    </ItemGroup>
+
+
+    <!-- BepInEx.PluginVersionInfo -->
+    <Target Name="SetPluginVersion" BeforeTargets="AddGeneratedFile" DependsOnTargets="MinVer">
+        <PropertyGroup>
+            <BepInExPluginVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch)</BepInExPluginVersion>
+        </PropertyGroup>
+    </Target>
+
+    <ItemGroup>
+        <PackageReference Include="UnityEngine.Modules" Version="2022.3.9" />
+        <PackageReference Include="LethalCompany.GameLibs.Steam" Version="45.0.2-alpha.1" />
+        <PackageReference Include="MinVer" Version="4.3.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="NicholaScott.BepInEx.RuntimeNetcodeRPCValidator">
+        <HintPath>..\RuntimeNetcodeRPCValidator\bin\Debug\netstandard2.1\NicholaScott.BepInEx.RuntimeNetcodeRPCValidator.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+</Project>

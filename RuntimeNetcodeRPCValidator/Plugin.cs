@@ -12,42 +12,28 @@ namespace RuntimeNetcodeRPCValidator
     public class Plugin : BaseUnityPlugin
     {
         private readonly Harmony harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
-        public static ManualLogSource Log { get; private set; } = null!;
+        public static ManualLogSource LogSource { get; private set; } = null!;
 
+        public static event Action NetworkManagerInitialized;
+        public static event Action NetworkManagerShutdown;
+            
         private void Awake()
         {
-            Log = Logger;
+            LogSource = Logger;
             harmony.Patch(AccessTools.Method(typeof(NetworkManager), nameof(NetworkManager.Initialize)),
                 postfix: new HarmonyMethod(typeof(Plugin), nameof(OnNetworkManagerInitialized)));
             harmony.Patch(AccessTools.Method(typeof(NetworkManager), nameof(NetworkManager.Shutdown)),
                 postfix: new HarmonyMethod(typeof(Plugin), nameof(OnNetworkManagerShutdown)));
         }
-        private static void OnNetworkManagerInitialized()
+
+        protected static void OnNetworkManagerInitialized()
         {
-            foreach (var netcodeValidator in NetcodeValidator.Validators)
-                netcodeValidator.NetworkManagerInitialized();
+            NetworkManagerInitialized?.Invoke();
         }
 
-        private static void OnNetworkManagerShutdown()
+        protected static void OnNetworkManagerShutdown()
         {
-            foreach (var netcodeValidator in NetcodeValidator.Validators)
-                netcodeValidator.NetworkManagerShutdown();
+            NetworkManagerShutdown?.Invoke();
         }
-
-        internal static void OnNetworkBehaviourConstructed(object __instance)
-        {
-            if (!(__instance is NetworkBehaviour networkBehaviour))
-                return;
-            if (networkBehaviour.NetworkObject == null || networkBehaviour.NetworkManager == null &&
-                NetworkBehaviourExtensions.LogErrorAndReturn($"NetworkBehaviour {__instance.GetType()} is trying to sync with the NetworkObject but the {(networkBehaviour.NetworkObject == null ? "NetworkObject" : "NetworkManager")} is null!", true))
-                return;
-            networkBehaviour.SyncWithNetworkObject();
-        }
-    }
-
-    public class AlreadyPatchedException : Exception
-    {
-        public AlreadyPatchedException(string PluginGUID) : base(
-            $"Can't patch plugin {PluginGUID} until the other instance of NetcodeValidator is Disposed of!") {}
     }
 }

@@ -16,3 +16,8 @@
 !RuntimeNetcodeRPCValidator/
 RuntimeNetcodeRPCValidator/[Bb]in
 RuntimeNetcodeRPCValidator/[Oo]bj
+
+!UnitTester/
+UnitTester/[Bb]in
+UnitTester/[Oo]bj
+

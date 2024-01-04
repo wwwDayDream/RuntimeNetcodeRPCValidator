@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.0
+
+### Changed
+
+- The final changes to the `NetcodeValidator` class occur w/ this update. This will be the final form, the only change on your end is a `new NetcodeValidator(YourPluginGUID)` instead of `new NetcodeValidator(YourPlugin)`. This is to be more in line with how Harmony instances are handled and to make things easier on the back-end. This includes a few new methods listed below following the pattern of the Harmony class.
+- NetcodeValidator.Patch(Type type)
+- NetcodeValidator.Patch(Assembly assembly)
+- NetcodeValidator.PatchAll()
+
 ## v0.1.8
 
 ### Fixed

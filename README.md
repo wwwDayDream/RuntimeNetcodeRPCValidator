@@ -12,17 +12,19 @@ This plugin offers an easy-to-use solution for Netcode's NetworkBehaviour class,
 - [Built With](#built-with)
 - [Acknowledgments](#acknowledgments)
 - [Contributing](#contributing)
-- [License](#license)
+- [Contact](#contact)
 
 ## Getting Started
 
 To integrate Runtime Unity Netcode Patcher in your Unity project, follow these steps:
 
-1. **Reference the Output DLL**: Include the output DLL in your project and add an `[BepInDependency(RuntimeNetcodeRPCValidator.PluginInfo.GUID)]` attribute to your `[BepInPlugin]`.
-2. **Instantiate NetcodeValidator**: Create and maintain a reference to an instance of `NetcodeValidator` && call `NetcodeValidator.PatchAll()`. When you wish to revert any patches applied, simply call `Dispose()`, or `UnpatchSelf()` if you want to keep the instance, on the instance. A new instance can then be created to reapply the netcode patching.
+1. **Reference Runtime Netcode RPC Validator**: Either by utilizing a NuGet package inside visual studio `dotnet add package NicholaScott.BepInEx.RuntimeNetcodeRPCValidator --version 0.2.0` and add an `[BepInDependency(RuntimeNetcodeRPCValidator.MyPluginInfo.PLUGIN_GUID, RuntimeNetcodeRPCValidator.MyPluginInfo.PLUGIN_VERSION)]` attribute to your `[BepInPlugin]`.
+2. **Instantiate NetcodeValidator**: Create and maintain a reference to an instance of `NetcodeValidator` and call `NetcodeValidator.PatchAll()`. When you wish to revert any patches applied call `Dispose()`, or `UnpatchSelf()` if you want to keep the instance for re-patching.
 3. **Define and Use RPCs**: Ensure your Remote Procedure Calls on your NetworkBehaviours have the correct attribute and end their name with ServerRpc/ClientRpc.
 
 ### Examples
+
+For more robust examples check the [Github Repo](https://github.com/NicholasScott1337/RuntimeNetcodeRPCValidator/tree/main/UnitTester) of the UnitTester plugin, which is used during development to verify codebase.
 
 ```csharp
 // Example of using NetcodeValidator
@@ -34,7 +36,7 @@ namespace SomePlugin {
         
         private void Awake()
         {
-            netcodeValidator = new NetcodeValidator(this);
+            netcodeValidator = new NetcodeValidator("My.Plugin.Guid");
             netcodeValidator.PatchAll();
         }
         
@@ -62,22 +64,35 @@ namespace SomePlugin {
     public class PluginNetworkingInstance : NetworkBehaviour {
         [ServerRpc]
         public void SendPreferredNameServerRpc(string name) {
+            // Log the received name
             Debug.Log(name);
+            // Tell all clients what the sender told us
             TellAllOtherClients(NetworkBehaviourExtensions.LastSenderId, name);
         }
         [ClientRpc]
-        public void TellEveryoneClientRpc(ulong senderId, string name) {
+        public void TellAllOtherClients(ulong senderId, string name) {
             Debug.Log(StartOfRound.Instance.allPlayerScripts.First(playerController => playerController.actualClientId == senderId).playerUsername + " is now " + name);
         }
         [ClientRpc]
         public void RunClientRpc() {
+            // Send to the server what our preferred name is, f.e.
             SendPreferredNameServerRpc("Nicki");
         }
-        public void Awake()
+        private void Awake()
         {
+            // Are we a server instance?
             if (IsHost)
-                RunClientRpc();
+                StartCoroutine(WaitForSomeTime());
         }
+
+        private IEnumerator WaitForSomeTime()
+        {
+            // We need to wait because sending an RPC before a NetworkObject is spawned results in errors.
+            yield return new WaitUntil(() => NetworkObject.IsSpawned);
+        
+            // Tell all clients to run this method.
+            RunClientRpc();
+        } 
     }
 }
 ```
@@ -106,3 +121,7 @@ Utilize the `NetworkBehaviourExtensions.LastSenderId` property to retrieve the I
 ## Contributing
 
 We welcome contributions! If you would like to help improve the Runtime Unity Netcode Patcher, please submit pull requests, and report bugs or suggestions in the issues section of this repository.
+
+## Contact
+
+Discord: [www.day.dream](https://discordapp.com/users/160901181692968971)
