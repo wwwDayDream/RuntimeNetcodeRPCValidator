@@ -26,9 +26,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Reference Include="NicholaScott.BepInEx.RuntimeNetcodeRPCValidator">
-        <HintPath>..\RuntimeNetcodeRPCValidator\bin\Debug\netstandard2.1\NicholaScott.BepInEx.RuntimeNetcodeRPCValidator.dll</HintPath>
-      </Reference>
+      <ProjectReference Include="..\RuntimeNetcodeRPCValidator\RuntimeNetcodeRPCValidator.csproj" />
     </ItemGroup>
 
 </Project>
