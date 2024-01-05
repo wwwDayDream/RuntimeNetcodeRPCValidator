@@ -27,6 +27,11 @@ target = "/NicholaScott.BepInEx.RuntimeNetcodeRPCValidator.dll"
 source = "../CHANGELOG.md"
 target = "CHANGELOG.md"
 
+[[build.copy]]
+source = "../LICENSE.txt"
+target = "LICENSE.txt"
+
+
 [publish]
 communities = ["lethal-company"]
 
