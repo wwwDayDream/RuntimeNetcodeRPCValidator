@@ -35,8 +35,14 @@ jobs:
         run: |
           dotnet pack 
 
-      - name: Upload Artifacts
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
           path: "dist/*.zip"
+          
+      - name: Upload Pack Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pack-artifacts
+          path: "RuntimeNetcodeRPCValidator/bin/Release/*.nupkg"
