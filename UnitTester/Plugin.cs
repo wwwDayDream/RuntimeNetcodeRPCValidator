@@ -21,8 +21,7 @@ namespace UnitTester
             NetcodeValidator = new RuntimeNetcodeRPCValidator.NetcodeValidator(MyPluginInfo.PLUGIN_GUID);
 
             NetcodeValidator.PatchAll();
-            NetcodeValidator.BindToPreExistingObjectByBehaviour<ConfigurationSync, Terminal>(
-                RuntimeNetcodeRPCValidator.NetcodeValidator.InsertionPoint.Awake);
+            NetcodeValidator.BindToPreExistingObjectByBehaviour<ConfigurationSync, Terminal>();
         }
     }
 }

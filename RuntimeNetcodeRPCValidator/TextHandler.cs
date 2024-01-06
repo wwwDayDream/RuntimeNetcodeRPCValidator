@@ -57,10 +57,6 @@ namespace RuntimeNetcodeRPCValidator
             "Make sure you bind to any pre-existing NetworkObjects before " +
             "NetworkManager.IsListening || IsConnectedClient.";
         
-        private const string PluginTriedToBindToNonExistentMethodConst = 
-            "Plugin {0} tried to bind a to NetworkBehaviour {1} at {2} " +
-            "but it doesn't contain a method definition for that!";
-        
         private const string RegisteredPatchForTypeConst = 
             "Successfully registered first patch for type {0}.{1} | Triggered by {2}";
         
@@ -114,18 +110,11 @@ namespace RuntimeNetcodeRPCValidator
             Type from, Type to) =>
             string.Format(PluginTriedToBindToPreExistingObjectTooLateConst, netcodeValidator.PluginGuid, 
                 from.Name, to.Name);
-
-        internal static string PluginTriedToBindToNonExistentMethod(NetcodeValidator validator, Type netBehaviour,
-            NetcodeValidator.InsertionPoint insertAt) =>
-            string.Format(PluginTriedToBindToNonExistentMethodConst, validator.PluginGuid,
-                netBehaviour.Name, insertAt);
-
-        internal static string RegisteredPatchForType(NetcodeValidator validator, Type netBehaviour,
-            NetcodeValidator.InsertionPoint insertAt) =>
-            string.Format(RegisteredPatchForTypeConst, netBehaviour.Name, insertAt, validator.PluginGuid);
+        internal static string RegisteredPatchForType(NetcodeValidator validator, Type netBehaviour, MethodBase method) =>
+            string.Format(RegisteredPatchForTypeConst, netBehaviour.Name, method.Name, validator.PluginGuid);
 
         internal static string CustomComponentAddedToExistingObject(
-            (NetcodeValidator validator, Type custom, Type native, NetcodeValidator.InsertionPoint insert) it,
+            (NetcodeValidator validator, Type custom, Type native) it,
             MethodBase methodBase) =>
             string.Format(CustomComponentAddedToExistingObjectConst, it.custom.Name, it.native.Name, methodBase.Name,
                 it.validator.PluginGuid);

@@ -13,8 +13,8 @@ namespace RuntimeNetcodeRPCValidator
     {
         private readonly Harmony _harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
 
-        private List<(Type, NetcodeValidator.InsertionPoint)> AlreadyPatchedNativeBehaviours { get; } =
-            new List<(Type, NetcodeValidator.InsertionPoint)>();
+        private List<Type> AlreadyPatchedNativeBehaviours { get; } =
+            new List<Type>();
 
         internal new static ManualLogSource Logger { get; private set; }
         public static event Action NetworkManagerInitialized;
@@ -32,36 +32,18 @@ namespace RuntimeNetcodeRPCValidator
                 postfix: new HarmonyMethod(typeof(Plugin), nameof(OnNetworkManagerShutdown)));
         }
 
-        private void NetcodeValidatorOnAddedNewBoundBehaviour(NetcodeValidator validator, Type netBehaviour, NetcodeValidator.InsertionPoint insertAt)
+        private void NetcodeValidatorOnAddedNewBoundBehaviour(NetcodeValidator validator, Type netBehaviour)
         {
-            var asItem = (netBehaviour, insertAt);
-            if (AlreadyPatchedNativeBehaviours.Contains(asItem)) return;
-            AlreadyPatchedNativeBehaviours.Add(asItem);
+            if (AlreadyPatchedNativeBehaviours.Contains(netBehaviour)) return;
+            AlreadyPatchedNativeBehaviours.Add(netBehaviour);
 
-            MethodBase method = null;
-
-            switch (insertAt)
-            {
-                case NetcodeValidator.InsertionPoint.Awake:
-                    method = AccessTools.Method(netBehaviour, "Awake");
-                    break;
-                case NetcodeValidator.InsertionPoint.Start:
-                    method = AccessTools.Method(netBehaviour, "Start");
-                    break;
-                case NetcodeValidator.InsertionPoint.Constructor:
-                    method = AccessTools.Constructor(netBehaviour);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(insertAt), insertAt, null);
-            }
-            
+            MethodBase method = AccessTools.Method(netBehaviour, "Awake");
             if (method == null)
-            {
-                Logger.LogError(TextHandler.PluginTriedToBindToNonExistentMethod(validator, netBehaviour, insertAt));
-                return;
-            }
-
-            Logger.LogInfo(TextHandler.RegisteredPatchForType(validator, netBehaviour, insertAt));
+                method = AccessTools.Method(netBehaviour, "Start");
+            if (method == null)
+                method = AccessTools.Constructor(netBehaviour);
+            
+            Logger.LogInfo(TextHandler.RegisteredPatchForType(validator, netBehaviour, method));
             
             var hMethod = new HarmonyMethod(typeof(NetcodeValidator), nameof(NetcodeValidator.TryLoadRelatedComponentsInOrder));
             _harmony.Patch(method, postfix: hMethod);

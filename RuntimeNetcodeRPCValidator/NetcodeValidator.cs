@@ -11,17 +11,12 @@ namespace RuntimeNetcodeRPCValidator
 {
     public sealed class NetcodeValidator : IDisposable
     {
-        private static List<(NetcodeValidator validator, Type custom, Type native, InsertionPoint insert)> BoundNetworkObjects { get; } =
-            new List<(NetcodeValidator, Type, Type, InsertionPoint)>();
-        internal static event Action<NetcodeValidator, Type, InsertionPoint> AddedNewBoundBehaviour;
+        private static List<(NetcodeValidator validator, Type custom, Type native)> BoundNetworkObjects { get; } =
+            new List<(NetcodeValidator, Type, Type)>();
+        internal static event Action<NetcodeValidator, Type> AddedNewBoundBehaviour;
         
         private static readonly List<string> AlreadyRegistered = new List<string>();
         internal const string TypeCustomMessageHandlerPrefix = "Net";
-
-        public enum InsertionPoint
-        {
-            Awake, Start, Constructor
-        }
         
         private List<string> CustomMessageHandlers { get; }
         private Harmony Patcher { get; }
@@ -47,13 +42,8 @@ namespace RuntimeNetcodeRPCValidator
 
         internal static void TryLoadRelatedComponentsInOrder(NetworkBehaviour __instance, MethodBase __originalMethod)
         {
-            var isAwake = __originalMethod.Name == "Awake";
-            var isStart = __originalMethod.Name == "Start";
-            var insertType = (isAwake ? InsertionPoint.Awake :
-                isStart ? InsertionPoint.Start : InsertionPoint.Constructor);
-
             var items = BoundNetworkObjects.Where(obj =>
-                    obj.insert == insertType && obj.native == __originalMethod.DeclaringType)
+                    obj.native == __originalMethod.DeclaringType)
                 .OrderBy(it => it.validator.PluginGuid);
             
             foreach (var it in items)
@@ -87,7 +77,7 @@ namespace RuntimeNetcodeRPCValidator
             return true;
         }
 
-        public void BindToPreExistingObjectByBehaviour<TCustomBehaviour, TNativeBehaviour>(InsertionPoint insertionPoint = InsertionPoint.Constructor) 
+        public void BindToPreExistingObjectByBehaviour<TCustomBehaviour, TNativeBehaviour>() 
             where TCustomBehaviour : NetworkBehaviour where TNativeBehaviour : NetworkBehaviour
         {
             if (NetworkManager.Singleton &&
@@ -99,7 +89,7 @@ namespace RuntimeNetcodeRPCValidator
                 return;
             }
             
-            OnAddedNewBoundBehaviour(this, typeof(TCustomBehaviour), typeof(TNativeBehaviour), insertionPoint);
+            OnAddedNewBoundBehaviour(this, typeof(TCustomBehaviour), typeof(TNativeBehaviour));
         }
         /// <summary>
         /// Applies dynamic patches to the specified NetworkBehaviour.
@@ -193,10 +183,10 @@ namespace RuntimeNetcodeRPCValidator
             AddedNewCustomMessageHandler?.Invoke(obj);
         }
 
-        private static void OnAddedNewBoundBehaviour(NetcodeValidator validator, Type custom, Type native, InsertionPoint insertAt)
+        private static void OnAddedNewBoundBehaviour(NetcodeValidator validator, Type custom, Type native)
         {
-            BoundNetworkObjects.Add((validator, custom, native, insertAt));
-            AddedNewBoundBehaviour?.Invoke(validator, native, insertAt);
+            BoundNetworkObjects.Add((validator, custom, native));
+            AddedNewBoundBehaviour?.Invoke(validator, native);
         }
     }
 }
