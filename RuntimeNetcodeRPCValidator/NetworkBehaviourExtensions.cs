@@ -42,7 +42,7 @@ namespace RuntimeNetcodeRPCValidator
             
             if (requiresOwnership && networkBehaviour.OwnerClientId != NetworkManager.Singleton.LocalClientId)
             {
-                Plugin.LogSource.LogError(
+                Plugin.Logger.LogError(
                     TextHandler.NotOwnerOfNetworkObject(
                         state == RpcState.FromUser ? "We" : "Client " + LastSenderId, 
                         method, networkBehaviour.NetworkObject));
@@ -51,23 +51,23 @@ namespace RuntimeNetcodeRPCValidator
             if (state == RpcState.FromUser && isClientRpcAttr &&
                 !(NetworkManager.Singleton.IsServer || NetworkManager.Singleton.IsHost))
             {
-                Plugin.LogSource.LogError(TextHandler.CantRunClientRpcFromClient(method));
+                Plugin.Logger.LogError(TextHandler.CantRunClientRpcFromClient(method));
                 return false;
             }
             if (state == RpcState.FromUser && !isServerRpcAttr && !isClientRpcAttr)
             {
-                Plugin.LogSource.LogError(TextHandler.MethodPatchedButLacksAttributes(method));
+                Plugin.Logger.LogError(TextHandler.MethodPatchedButLacksAttributes(method));
                 return false;
             }
             if (state == RpcState.FromNetworking && !isServerRpcAttr && !isClientRpcAttr)
             {
-                Plugin.LogSource.LogError(TextHandler.MethodPatchedAndNetworkCalledButLacksAttributes(method));
+                Plugin.Logger.LogError(TextHandler.MethodPatchedAndNetworkCalledButLacksAttributes(method));
                 return false;
             }
             if (state == RpcState.FromNetworking && isServerRpcAttr &&
                 !(networkBehaviour.IsServer || networkBehaviour.IsHost))
             {
-                Plugin.LogSource.LogError(TextHandler.CantRunServerRpcAsClient(method));
+                Plugin.Logger.LogError(TextHandler.CantRunServerRpcAsClient(method));
                 return false;
             }
             
@@ -80,7 +80,7 @@ namespace RuntimeNetcodeRPCValidator
             if (!NetworkManager.Singleton ||
                 !(NetworkManager.Singleton.IsListening || NetworkManager.Singleton.IsConnectedClient))
             {
-                Plugin.LogSource.LogError(TextHandler.NoNetworkManagerPresentToSendRpc(networkBehaviour));
+                Plugin.Logger.LogError(TextHandler.NoNetworkManagerPresentToSendRpc(networkBehaviour));
                 return false;
             }
 
@@ -100,7 +100,7 @@ namespace RuntimeNetcodeRPCValidator
 
             var messageChannel = new StringBuilder(NetcodeValidator.TypeCustomMessageHandlerPrefix)
                 .Append(".")
-                .Append(method.DeclaringType!.Name).ToString();
+                .Append(method.DeclaringType.Name).ToString();
             var delivery = rpcAttribute.Delivery == RpcDelivery.Reliable
                 ? NetworkDelivery.Reliable
                 : NetworkDelivery.Unreliable;
@@ -129,16 +129,16 @@ namespace RuntimeNetcodeRPCValidator
             if (!NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(networkObjectId,
                     out var networkObject))
             {
-                Plugin.LogSource.LogError(TextHandler.RpcCalledBeforeObjectSpawned());
+                Plugin.Logger.LogError(TextHandler.RpcCalledBeforeObjectSpawned());
                 return;
             }
 
-            var networkBehaviour = networkObject!.GetNetworkBehaviourAtOrderIndex(networkBehaviourId);
+            var networkBehaviour = networkObject.GetNetworkBehaviourAtOrderIndex(networkBehaviourId);
             const BindingFlags bindingFlags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
             var method = networkBehaviour.GetType().GetMethod(rpcName, bindingFlags);
             if (method == null)
             {
-                Plugin.LogSource.LogError(TextHandler.NetworkCalledNonExistentMethod(networkBehaviour, rpcName));
+                Plugin.Logger.LogError(TextHandler.NetworkCalledNonExistentMethod(networkBehaviour, rpcName));
                 return;
             }
 

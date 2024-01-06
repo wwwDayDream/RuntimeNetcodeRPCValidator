@@ -12,14 +12,14 @@ namespace RuntimeNetcodeRPCValidator
     public class Plugin : BaseUnityPlugin
     {
         private readonly Harmony harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
-        public static ManualLogSource LogSource { get; private set; } = null!;
+        public new static ManualLogSource Logger { get; private set; }
 
         public static event Action NetworkManagerInitialized;
         public static event Action NetworkManagerShutdown;
             
         private void Awake()
         {
-            LogSource = Logger;
+            Logger = base.Logger;
             harmony.Patch(AccessTools.Method(typeof(NetworkManager), nameof(NetworkManager.Initialize)),
                 postfix: new HarmonyMethod(typeof(Plugin), nameof(OnNetworkManagerInitialized)));
             harmony.Patch(AccessTools.Method(typeof(NetworkManager), nameof(NetworkManager.Shutdown)),
@@ -28,7 +28,7 @@ namespace RuntimeNetcodeRPCValidator
 
         protected static void OnNetworkManagerInitialized()
         {
-            NetworkManagerInitialized?.Invoke();
+            NetworkManagerInitialized.Invoke();
         }
 
         protected static void OnNetworkManagerShutdown()

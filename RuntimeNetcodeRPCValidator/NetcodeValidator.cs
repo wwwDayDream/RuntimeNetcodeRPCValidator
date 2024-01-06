@@ -41,11 +41,11 @@ namespace RuntimeNetcodeRPCValidator
                 return;
             if (networkBehaviour.NetworkObject == null)
             {
-                Plugin.LogSource.LogError(TextHandler.BehaviourLacksNetworkObject(__instance.GetType().Name));
+                Plugin.Logger.LogError(TextHandler.BehaviourLacksNetworkObject(__instance.GetType().Name));
             }
             if (networkBehaviour.NetworkObject == null || networkBehaviour.NetworkManager == null)
             {
-                Plugin.LogSource.LogError(TextHandler.NoNetworkManagerPresentToSyncWith(__instance.GetType().Name));
+                Plugin.Logger.LogError(TextHandler.NoNetworkManagerPresentToSyncWith(__instance.GetType().Name));
                 return;
             }
             networkBehaviour.SyncWithNetworkObject();
@@ -61,12 +61,12 @@ namespace RuntimeNetcodeRPCValidator
                 return false;
             if ((!isServerRpc && endsWithServerRpc) || (!isClientRpc && endsWithClientRpc))
             {
-                Plugin.LogSource.LogError(TextHandler.MethodLacksRpcAttribute(rpcMethod));
+                Plugin.Logger.LogError(TextHandler.MethodLacksRpcAttribute(rpcMethod));
                 return false;
             }
             if ((isServerRpc && !endsWithServerRpc) || (isClientRpc && !endsWithClientRpc))
             {
-                Plugin.LogSource.LogError(TextHandler.MethodLacksSuffix(rpcMethod));
+                Plugin.Logger.LogError(TextHandler.MethodLacksSuffix(rpcMethod));
                 return false;
             }
             Patcher.Patch(rpcMethod,
@@ -102,7 +102,7 @@ namespace RuntimeNetcodeRPCValidator
                 clientRPCsPatched += isClientRpc ? 1 : 0;
             }
             
-            Plugin.LogSource.LogInfo(TextHandler.SuccessfullyPatchedType(netBehaviourTyped, serverRPCsPatched, clientRPCsPatched));
+            Plugin.Logger.LogInfo(TextHandler.SuccessfullyPatchedType(netBehaviourTyped, serverRPCsPatched, clientRPCsPatched));
         }
 
         /// <summary>

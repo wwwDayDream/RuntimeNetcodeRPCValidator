@@ -19,13 +19,14 @@ namespace RuntimeNetcodeRPCValidator
         private static void WriteSystemSerializable(this FastBufferWriter fastBufferWriter, object serializable)
         {
             var formatter = new BinaryFormatter();
-            using var stream = new MemoryStream();
+            using (var stream = new MemoryStream())
+            {
+                formatter.Serialize(stream, serializable);
+                var paramBytes = stream.ToArray();
 
-            formatter.Serialize(stream, serializable);
-            var paramBytes = stream.ToArray();
-
-            fastBufferWriter.WriteValueSafe(paramBytes.Length);
-            fastBufferWriter.WriteBytes(paramBytes);
+                fastBufferWriter.WriteValueSafe(paramBytes.Length);
+                fastBufferWriter.WriteBytes(paramBytes);
+            }
         }
 
         /// <summary>
@@ -39,11 +40,13 @@ namespace RuntimeNetcodeRPCValidator
             var paramBytes = new byte[byteLength];
             fastBufferReader.ReadBytes(ref paramBytes, byteLength);
 
-            using var stream = new MemoryStream(paramBytes);
-            stream.Seek(0, 0);
-            var formatter = new BinaryFormatter();
+            using (var stream = new MemoryStream(paramBytes))
+            {
+                stream.Seek(0, 0);
+                var formatter = new BinaryFormatter();
 
-            serializable = formatter.Deserialize(stream);
+                serializable = formatter.Deserialize(stream);
+            }
         }
 
         /// <summary>
@@ -53,13 +56,15 @@ namespace RuntimeNetcodeRPCValidator
         /// <param name="networkSerializable">The object to be serialized.</param>
         private static void WriteNetcodeSerializable(this FastBufferWriter fastBufferWriter, object networkSerializable)
         {
-            using var bufferWriter = new FastBufferWriter(1024, Allocator.Temp);
-            var buffer = new BufferSerializer<BufferSerializerWriter>(new BufferSerializerWriter(bufferWriter));
-            (networkSerializable as INetworkSerializable)?.NetworkSerialize(buffer);
-            var paramBytes = bufferWriter.ToArray();
-            
-            fastBufferWriter.WriteValueSafe(paramBytes.Length);
-            fastBufferWriter.WriteBytes(paramBytes);
+            using (var bufferWriter = new FastBufferWriter(1024, Allocator.Temp))
+            {
+                var buffer = new BufferSerializer<BufferSerializerWriter>(new BufferSerializerWriter(bufferWriter));
+                (networkSerializable as INetworkSerializable)?.NetworkSerialize(buffer);
+                var paramBytes = bufferWriter.ToArray();
+
+                fastBufferWriter.WriteValueSafe(paramBytes.Length);
+                fastBufferWriter.WriteBytes(paramBytes);
+            }
         }
 
         /// <summary>
@@ -75,10 +80,12 @@ namespace RuntimeNetcodeRPCValidator
             var paramBytes = new byte[byteLength];
             fastBufferReader.ReadBytes(ref paramBytes, byteLength);
 
-            using var bufferReader = new FastBufferReader(paramBytes, Allocator.Temp);
-            var buffer = new BufferSerializer<BufferSerializerReader>(new BufferSerializerReader(bufferReader));
-            serializable = Activator.CreateInstance(type);
-            (serializable as INetworkSerializable)?.NetworkSerialize(buffer);
+            using (var bufferReader = new FastBufferReader(paramBytes, Allocator.Temp))
+            {
+                var buffer = new BufferSerializer<BufferSerializerReader>(new BufferSerializerReader(bufferReader));
+                serializable = Activator.CreateInstance(type);
+                (serializable as INetworkSerializable)?.NetworkSerialize(buffer);
+            }
         }
 
         public static void WriteMethodInfoAndParameters(this FastBufferWriter fastBufferWriter, MethodBase methodInfo,
