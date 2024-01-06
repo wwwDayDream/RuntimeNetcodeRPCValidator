@@ -64,6 +64,9 @@ namespace RuntimeNetcodeRPCValidator
         private const string RegisteredPatchForTypeConst = 
             "Successfully registered first patch for type {0}.{1} | Triggered by {2}";
         
+        private const string CustomComponentAddedToExistingObjectConst = 
+            "Successfully added {0} to {1} via {2}. Triggered by plugin {3}";
+        
         internal static string NoNetworkManagerPresentToSendRpc(NetworkBehaviour networkBehaviour) =>
             string.Format(NoNetworkManagerPresentToSendRpcConst, networkBehaviour.NetworkBehaviourId);
         
@@ -121,5 +124,10 @@ namespace RuntimeNetcodeRPCValidator
             NetcodeValidator.InsertionPoint insertAt) =>
             string.Format(RegisteredPatchForTypeConst, netBehaviour.Name, insertAt, validator.PluginGuid);
 
+        internal static string CustomComponentAddedToExistingObject(
+            (NetcodeValidator validator, Type custom, Type native, NetcodeValidator.InsertionPoint insert) it,
+            MethodBase methodBase) =>
+            string.Format(CustomComponentAddedToExistingObjectConst, it.custom.Name, it.native.Name, methodBase.Name,
+                it.validator.PluginGuid);
     }
 }

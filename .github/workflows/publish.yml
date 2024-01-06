@@ -31,11 +31,11 @@ jobs:
 
       - name: Build solution
         run: |
-          dotnet publish
+          dotnet publish -f netstandard2.1 -configuration Release
 
       - name: Pack Solution
         run: |
-          dotnet pack
+          dotnet pack --configuration Release
 
       - name: Upload nupkg artifact
         uses: actions/upload-artifact@v4

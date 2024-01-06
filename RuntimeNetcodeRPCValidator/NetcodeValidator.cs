@@ -58,6 +58,7 @@ namespace RuntimeNetcodeRPCValidator
             
             foreach (var it in items)
             {
+                Plugin.Logger.LogInfo(TextHandler.CustomComponentAddedToExistingObject(it, __originalMethod));
                 (__instance.gameObject.AddComponent(it.custom) as NetworkBehaviour).SyncWithNetworkObject();
             }
         }

@@ -33,7 +33,7 @@ jobs:
 
       - name: Build solution
         run: |
-          dotnet pack 
+          dotnet pack --configuration Release
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
