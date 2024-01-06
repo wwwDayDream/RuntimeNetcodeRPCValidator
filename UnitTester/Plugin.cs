@@ -21,14 +21,8 @@ namespace UnitTester
             NetcodeValidator = new RuntimeNetcodeRPCValidator.NetcodeValidator(MyPluginInfo.PLUGIN_GUID);
 
             NetcodeValidator.PatchAll();
-            Patcher.Patch(
-                AccessTools.Method(typeof(Terminal), nameof(Terminal.Awake)),
-                new HarmonyMethod(typeof(Plugin), nameof(OnTerminalAwake)));
-        }
-
-        private static void OnTerminalAwake(Terminal __instance)
-        {
-            __instance.gameObject.AddComponent<ConfigurationSync>();
+            NetcodeValidator.BindToPreExistingObjectByBehaviour<ConfigurationSync, Terminal>(
+                RuntimeNetcodeRPCValidator.NetcodeValidator.InsertionPoint.Awake);
         }
     }
 }

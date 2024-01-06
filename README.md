@@ -1,26 +1,44 @@
-# Runtime Unity Netcode Patcher
+# [RNV] Runtime Netcode Validator
 [![Build](https://github.com/NicholasScott1337/RuntimeNetcodeRPCValidator/actions/workflows/build.yml/badge.svg)](https://github.com/NicholasScott1337/RuntimeNetcodeRPCValidator/actions/workflows/build.yml)
 
-This plugin offers an easy-to-use solution for Netcode's NetworkBehaviour class, streamlining the approach to networking mods with Server and Client RPCs. By utilizing the CustomMessagingHandler of Netcode, it networks RPCs and their System.Serializable (Marked with [Serializable]) or INetworkSerializable parameters. While this is currently only in the Lethal Company directory, it can be expanded to other games upon request. Please reach out on Discord or via an issue here on Github for questions or contact.
+A [BepInEx](#version-compliance) plugin utilizing [HarmonyX](#version-compliance) to patch methods labeled with `[ServerRpc]` or `[ClientRpc]`, inside a specified type that derives from `NetworkBehaviour`, to run the same format of checks [NGO](#version-compliance) patches in during compile-time.
 
+### F.A.Q.
+
+- *Why is my `NetworkBehaviour` added to a pre-existing `NetworkObject` not working?*
+    - RNV **used** to auto-magically patch your `NetworkBehaviour::Constructor` to call a custom method  to synchronize with the parent NetworkObject (something that registering a new NetworkObject w/ NetworkPrefab, and .Spawn()ing avoids). To prevent confusion this is now a [manual process](#pre-existing-networkobject) but is still possible.
+- *What does Runtime Netcode Validator mean?*
+  - In simplest terms, 'Netcode Validation' is a way to describe the process of verifying the associated information that makes a RPC(Remote Procedure Call) transmit it's information across the network and then doing that transmission. This is universal, the `Runtime` is what sets this apart, as it does it's "code insertion" at runtime.
+- *How does this differ from what [NGO](#version-compliance) (or implementations of the NGO IL emitter such as Weaver) does to my RPC methods?*
+  - This utilizes [HarmonyX](#version-compliance) to patch your methods at runtime and add this 'validation' check in the form of a custom method with as little overhead as possible (along with other QoL [NGO](#version-compliance) features). This comes with some benefits, like adding custom serialization (discussed later), as well as allowing you to un-patch your RPC methods.
+- *What are the __implications__ of runtime patching?*
+  - Arguments could be made about the memory overhead that patching causes but this should be minimal and no worse than if you were to patch any other method. The actual check itself is designed to be no more intrusive than the [NGO](#version-compliance) checks and can be manually reviewed as the method that is called (Determining if *your* rpc should proceed or if we should transmit across the network) is under [NetworkBehaviourExtensions::MethodPatchInternal](https://github.com/NicholasScott1337/RuntimeNetcodeRPCValidator/blob/main/RuntimeNetcodeRPCValidator/NetworkBehaviourExtensions.cs#L77)
+- *What can I put in the RPC parameters?*
+  - Typically [NGO](#version-compliance) only allows you to send anything that implements `INetworkSerializable` which usually is fine; However if you want a simple struct or class and writing a whole `INetworkSerializable` implementation method just for a few variables is too much, then you can mark the object with a `[System.Serializable]` attribute and RNV will handle serializing it over the network as well as your normal `INetworkSerializable` parameters.  
 
 ## Table of Contents
 - [Getting Started](#getting-started)
 - [Examples](#examples)
-- [Prerequisites](#prerequisites)
 - [Notes](#notes)
-- [Built With](#built-with)
+- [Versioning](#version-compliance)
 - [Acknowledgments](#acknowledgments)
 - [Contributing](#contributing)
 - [Contact](#contact)
 
 ## Getting Started
 
-To integrate Runtime Unity Netcode Patcher in your Unity project, follow these steps:
 
-1. **Reference Runtime Netcode RPC Validator**: Either by utilizing a NuGet package inside visual studio `dotnet add package NicholaScott.BepInEx.RuntimeNetcodeRPCValidator --version 0.2.0` and add an `[BepInDependency(RuntimeNetcodeRPCValidator.MyPluginInfo.PLUGIN_GUID, RuntimeNetcodeRPCValidator.MyPluginInfo.PLUGIN_VERSION)]` attribute to your `[BepInPlugin]`.
-2. **Instantiate NetcodeValidator**: Create and maintain a reference to an instance of `NetcodeValidator` and call `NetcodeValidator.PatchAll()`. When you wish to revert any patches applied call `Dispose()`, or `UnpatchSelf()` if you want to keep the instance for re-patching.
-3. **Define and Use RPCs**: Ensure your Remote Procedure Calls on your NetworkBehaviours have the correct attribute and end their name with ServerRpc/ClientRpc.
+- Reference Runtime Netcode RPC Validator by installing the NuGet package from the terminal (in your projects directory):
+
+    `dotnet add package NicholaScott.BepInEx.RuntimeNetcodeRPCValidator` 
+
+- Add a BepInDependency  attribute to your `BaseUnityPlugin`.
+
+    `[BepInDependency(RuntimeNetcodeRPCValidator.MyPluginInfo.PLUGIN_GUID, RuntimeNetcodeRPCValidator.MyPluginInfo.PLUGIN_VERSION)]`
+
+- **Instantiate NetcodeValidator**: Create and maintain a reference to an instance of `NetcodeValidator` and call `NetcodeValidator.PatchAll()`. When you wish to revert any patches applied call `Dispose()`, or `UnpatchSelf()` if you want to keep the instance for re-patching.
+
+- **Define and Use RPCs**: Ensure your Remote Procedure Calls on your NetworkBehaviours have the correct attribute and end their name with ServerRpc/ClientRpc.
 
 ### Examples
 
@@ -97,22 +115,17 @@ namespace SomePlugin {
 }
 ```
 
-### Prerequisites
-
-Ensure you have the following components within the environment:
-
-- **[Unity's Netcode for GameObjects (NGO)](https://github.com/Unity-Technologies/com.unity.netcode.gameobjects)**: For handling networked entities and communications.
-- **[Harmony](https://github.com/pardeike/Harmony)**: A powerful library for patching, replacing and decorating .NET and Mono methods during runtime.
-
 ### Notes
 
 Utilize the `NetworkBehaviourExtensions.LastSenderId` property to retrieve the ID of the last RPC sender. This will always be `NetworkManager.ServerClientId` on the clients.
 
+### Pre-Existing NetworkObject
+So you don't wanna make a prefab eh? Don't feel like registering it with the network and all that jazz? 
 
-### Built With
-
-- [Harmony](https://github.com/pardeike/Harmony) - For runtime method patching.
-- [Unity's Netcode for GameObjects (NGO)](https://github.com/Unity-Technologies/com.unity.netcode.gameobjects) - For robust networking in Unity.
+## Version Compliance
+- [Networking For GameObjects (NGO)](https://github.com/Unity-Technologies/com.unity.netcode.gameobjects/tree/develop) No version issues reported.
+- [Built for BepInEx 5.4.2100](https://github.com/BepInEx/BepInEx) but no version issues reported.
+- [HarmonyX packaged w/ BepInEx](https://github.com/BepInEx/HarmonyX/wiki) but considering to drop back to MonoMod implementations.
 
 ## Acknowledgments
 
@@ -120,7 +133,7 @@ Utilize the `NetworkBehaviourExtensions.LastSenderId` property to retrieve the I
 
 ## Contributing
 
-We welcome contributions! If you would like to help improve the Runtime Unity Netcode Patcher, please submit pull requests, and report bugs or suggestions in the issues section of this repository.
+We welcome contributions! If you would like to help improve the RNV, please submit pull requests, and report bugs or suggestions in the issues section of this repository.
 
 ## Contact
 

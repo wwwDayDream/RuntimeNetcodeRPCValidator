@@ -11,12 +11,21 @@ namespace RuntimeNetcodeRPCValidator
 {
     public sealed class NetcodeValidator : IDisposable
     {
+        private static List<(NetcodeValidator validator, Type custom, Type native, InsertionPoint insert)> BoundNetworkObjects { get; } =
+            new List<(NetcodeValidator, Type, Type, InsertionPoint)>();
+        internal static event Action<NetcodeValidator, Type, InsertionPoint> AddedNewBoundBehaviour;
+        
         private static readonly List<string> AlreadyRegistered = new List<string>();
-        public const string TypeCustomMessageHandlerPrefix = "Net";
+        internal const string TypeCustomMessageHandlerPrefix = "Net";
+
+        public enum InsertionPoint
+        {
+            Awake, Start, Constructor
+        }
         
         private List<string> CustomMessageHandlers { get; }
         private Harmony Patcher { get; }
-        private string PluginGuid { get; }
+        public string PluginGuid { get; }
         private event Action<string> AddedNewCustomMessageHandler;
 
         public NetcodeValidator(string pluginGuid)
@@ -35,20 +44,22 @@ namespace RuntimeNetcodeRPCValidator
             Plugin.NetworkManagerShutdown += NetworkManagerShutdown;
         }
         
-        internal static void OnNetworkBehaviourConstructed(object __instance)
+
+        internal static void TryLoadRelatedComponentsInOrder(NetworkBehaviour __instance, MethodBase __originalMethod)
         {
-            if (!(__instance is NetworkBehaviour networkBehaviour))
-                return;
-            if (networkBehaviour.NetworkObject == null)
+            var isAwake = __originalMethod.Name == "Awake";
+            var isStart = __originalMethod.Name == "Start";
+            var insertType = (isAwake ? InsertionPoint.Awake :
+                isStart ? InsertionPoint.Start : InsertionPoint.Constructor);
+
+            var items = BoundNetworkObjects.Where(obj =>
+                    obj.insert == insertType && obj.native == __originalMethod.DeclaringType)
+                .OrderBy(it => it.validator.PluginGuid);
+            
+            foreach (var it in items)
             {
-                Plugin.Logger.LogError(TextHandler.BehaviourLacksNetworkObject(__instance.GetType().Name));
+                (__instance.gameObject.AddComponent(it.custom) as NetworkBehaviour).SyncWithNetworkObject();
             }
-            if (networkBehaviour.NetworkObject == null || networkBehaviour.NetworkManager == null)
-            {
-                Plugin.Logger.LogError(TextHandler.NoNetworkManagerPresentToSyncWith(__instance.GetType().Name));
-                return;
-            }
-            networkBehaviour.SyncWithNetworkObject();
         }
 
         private bool Patch(MethodInfo rpcMethod, out bool isServerRpc, out bool isClientRpc)
@@ -75,6 +86,20 @@ namespace RuntimeNetcodeRPCValidator
             return true;
         }
 
+        public void BindToPreExistingObjectByBehaviour<TCustomBehaviour, TNativeBehaviour>(InsertionPoint insertionPoint = InsertionPoint.Constructor) 
+            where TCustomBehaviour : NetworkBehaviour where TNativeBehaviour : NetworkBehaviour
+        {
+            if (NetworkManager.Singleton &&
+                (NetworkManager.Singleton.IsListening || NetworkManager.Singleton.IsConnectedClient))
+            {
+                Plugin.Logger.LogError(
+                    TextHandler.PluginTriedToBindToPreExistingObjectTooLate(this, 
+                        typeof(TCustomBehaviour), typeof(TNativeBehaviour)));
+                return;
+            }
+            
+            OnAddedNewBoundBehaviour(this, typeof(TCustomBehaviour), typeof(TNativeBehaviour), insertionPoint);
+        }
         /// <summary>
         /// Applies dynamic patches to the specified NetworkBehaviour.
         /// </summary>
@@ -85,12 +110,7 @@ namespace RuntimeNetcodeRPCValidator
             if (netBehaviourTyped.BaseType != typeof(NetworkBehaviour))
                 throw new NotNetworkBehaviourException(netBehaviourTyped);
 
-            Patcher.Patch(
-                AccessTools.Constructor(netBehaviourTyped),
-                new HarmonyMethod(typeof(NetcodeValidator), nameof(OnNetworkBehaviourConstructed)));
-            
-            CustomMessageHandlers.Add($"{TypeCustomMessageHandlerPrefix}.{netBehaviourTyped.Name}");
-            OnAddedNewCustomMessageHandler(CustomMessageHandlers.Last());
+            OnAddedNewCustomMessageHandler($"{TypeCustomMessageHandlerPrefix}.{netBehaviourTyped.Name}");
 
             var serverRPCsPatched = 0;
             var clientRPCsPatched = 0;
@@ -168,7 +188,14 @@ namespace RuntimeNetcodeRPCValidator
 
         private void OnAddedNewCustomMessageHandler(string obj)
         {
+            CustomMessageHandlers.Add(obj);
             AddedNewCustomMessageHandler?.Invoke(obj);
+        }
+
+        private static void OnAddedNewBoundBehaviour(NetcodeValidator validator, Type custom, Type native, InsertionPoint insertAt)
+        {
+            BoundNetworkObjects.Add((validator, custom, native, insertAt));
+            AddedNewBoundBehaviour?.Invoke(validator, native, insertAt);
         }
     }
 }

@@ -6,12 +6,6 @@ namespace RuntimeNetcodeRPCValidator
 {
     internal static class TextHandler
     {
-        private const string BehaviourLacksNetworkObjectConst = 
-            "NetworkBehaviour {0} is trying to sync with the Network but it doesn't have one!";
-
-        private const string NoNetworkManagerPresentToSyncWithConst =
-            "NetworkBehaviour {0} is trying to sync with the Network but there is no NetworkManager";
-
         private const string NoNetworkManagerPresentToSendRpcConst =
             "NetworkBehaviour {0} tried to send a RPC but the NetworkManager is non-existant!";
         
@@ -58,12 +52,18 @@ namespace RuntimeNetcodeRPCValidator
             "[Network] NetworkBehaviour received a RPC {0} " +
             "but the number of parameters sent {1} != MethodInfo param count {2}";
         
-        internal static string BehaviourLacksNetworkObject(string className) =>
-            string.Format(BehaviourLacksNetworkObjectConst, className);
-
-        internal static string NoNetworkManagerPresentToSyncWith(string className) =>
-            string.Format(NoNetworkManagerPresentToSyncWithConst, className);
-
+        private const string PluginTriedToBindToPreExistingObjectTooLateConst = 
+            "Plugin '{0}' tried to bind {1} to {2} but it's too late! " +
+            "Make sure you bind to any pre-existing NetworkObjects before " +
+            "NetworkManager.IsListening || IsConnectedClient.";
+        
+        private const string PluginTriedToBindToNonExistentMethodConst = 
+            "Plugin {0} tried to bind a to NetworkBehaviour {1} at {2} " +
+            "but it doesn't contain a method definition for that!";
+        
+        private const string RegisteredPatchForTypeConst = 
+            "Successfully registered first patch for type {0}.{1} | Triggered by {2}";
+        
         internal static string NoNetworkManagerPresentToSendRpc(NetworkBehaviour networkBehaviour) =>
             string.Format(NoNetworkManagerPresentToSendRpcConst, networkBehaviour.NetworkBehaviourId);
         
@@ -106,5 +106,20 @@ namespace RuntimeNetcodeRPCValidator
 
         internal static string InconsistentParameterCount(MethodBase method, int paramsSent) =>
             string.Format(InconsistentParameterCountConst, method.Name, paramsSent, method.GetParameters().Length);
+
+        internal static string PluginTriedToBindToPreExistingObjectTooLate(NetcodeValidator netcodeValidator, 
+            Type from, Type to) =>
+            string.Format(PluginTriedToBindToPreExistingObjectTooLateConst, netcodeValidator.PluginGuid, 
+                from.Name, to.Name);
+
+        internal static string PluginTriedToBindToNonExistentMethod(NetcodeValidator validator, Type netBehaviour,
+            NetcodeValidator.InsertionPoint insertAt) =>
+            string.Format(PluginTriedToBindToNonExistentMethodConst, validator.PluginGuid,
+                netBehaviour.Name, insertAt);
+
+        internal static string RegisteredPatchForType(NetcodeValidator validator, Type netBehaviour,
+            NetcodeValidator.InsertionPoint insertAt) =>
+            string.Format(RegisteredPatchForTypeConst, netBehaviour.Name, insertAt, validator.PluginGuid);
+
     }
 }
