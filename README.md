@@ -114,7 +114,13 @@ namespace SomePlugin {
 Utilize the `NetworkBehaviourExtensions.LastSenderId` property to retrieve the ID of the last RPC sender. This will always be `NetworkManager.ServerClientId` on the clients.
 
 ### Pre-Existing NetworkObject
-So you don't wanna make a prefab eh? Don't feel like registering it with the network? Afraid of what might come? Fear no more, as you can bind your NetworkBehaviour to a pre-existing (native) NetworkBehaviour utilizing a method anytime before `NetworkManager` is initialized. Generally this would be in your Plugins Awake, right after you create and patch with your `NetcodeValidator`. Keep in mind the `NetworkBehaviour` provided should have the method you provide in the `InsertionPoint`. If the NetworkBehaviour lacks an `Awake` or `Start` method you can leave it default to the `Constructor` of that `NetworkBehaviour` See the [Examples](#examples) above for usage.
+So you don't wanna make a prefab eh? Don't feel like registering it with the network? Afraid of what might come? Fear no more, as you can bind your NetworkBehaviour to a pre-existing (native) NetworkBehaviour utilizing a method anytime before `NetworkManager` is initialized. Generally this would be in your Plugins Awake, right after you create and patch with your `NetcodeValidator`. Keep in mind the `NetworkBehaviour` provided should have the method you provide in the `InsertionPoint`. If the NetworkBehaviour lacks an `Awake` or `Start` method you can leave it default to the `Constructor` of that `NetworkBehaviour` See the [Examples](#examples) above for usage and below for a details signature.
+```csharp
+public enum NetcodeValidator.InsertionPoint {
+    Awake, Start, Constructor   
+}
+public void NetcodeValidator::BindToPreExistingObjectByBehaviour<TCustomBehaviour, TNativeBehaviour>(NetcodeValidator.InsertionPoint insertionPoint = NetcodeValidator.InsertionPoint.Constructor)
+```
 
 ## Version Compliance
 - [Networking For GameObjects (NGO)](https://github.com/Unity-Technologies/com.unity.netcode.gameobjects/tree/develop) No version issues reported.
