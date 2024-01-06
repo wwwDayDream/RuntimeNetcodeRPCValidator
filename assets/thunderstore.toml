@@ -20,7 +20,7 @@ readme = "../README.md"
 outdir = "../dist/"
 
 [[build.copy]]
-source  = "../RuntimeNetcodeRPCValidator/bin/Debug/netstandard2.1/NicholaScott.BepInEx.RuntimeNetcodeRPCValidator.dll"
+source  = "../RuntimeNetcodeRPCValidator/bin/Release/netstandard2.1/NicholaScott.BepInEx.RuntimeNetcodeRPCValidator.dll"
 target = "/NicholaScott.BepInEx.RuntimeNetcodeRPCValidator.dll"
 
 [[build.copy]]
