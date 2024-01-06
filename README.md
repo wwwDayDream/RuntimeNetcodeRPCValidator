@@ -36,7 +36,7 @@ A [BepInEx](#version-compliance) plugin utilizing [HarmonyX](#version-compliance
 
     `[BepInDependency(RuntimeNetcodeRPCValidator.MyPluginInfo.PLUGIN_GUID, RuntimeNetcodeRPCValidator.MyPluginInfo.PLUGIN_VERSION)]`
 
-- **Instantiate NetcodeValidator**: Create and maintain a reference to an instance of `NetcodeValidator` and call `NetcodeValidator.PatchAll()`. When you wish to revert any patches applied call `Dispose()`, or `UnpatchSelf()` if you want to keep the instance for re-patching.
+- **Instantiate NetcodeValidator**: Create and maintain a reference to an instance of `NetcodeValidator` and call `NetcodeValidator.PatchAll()`. If, and only if, you wish to revert any patches applied you can call `Dispose()`, or `UnpatchSelf()` if you want to keep the instance for re-patching.
 
 - **Define and Use RPCs**: Ensure your Remote Procedure Calls on your NetworkBehaviours have the correct attribute and end their name with ServerRpc/ClientRpc.
 
@@ -58,12 +58,6 @@ namespace SomePlugin {
             netcodeValidator.PatchAll();
             
             netcodeValidator.BindToPreExistingObjectByBehaviour<PluginNetworkingInstance, Terminal>();
-        }
-        
-        // [[OPTIONAL DISPOSE TO UNPATCH]]
-        private void OnDestroy()
-        {
-            netcodeValidator.Dispose();
         }
     }
 }

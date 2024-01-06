@@ -63,6 +63,9 @@ namespace RuntimeNetcodeRPCValidator
         private const string CustomComponentAddedToExistingObjectConst = 
             "Successfully added {0} to {1} via {2}. Triggered by plugin {3}";
         
+        private const string PluginUnpatchedAllRPCsConst = 
+            "Plugin {0} has unpatched all RPCs!";
+        
         internal static string NoNetworkManagerPresentToSendRpc(NetworkBehaviour networkBehaviour) =>
             string.Format(NoNetworkManagerPresentToSendRpcConst, networkBehaviour.NetworkBehaviourId);
         
@@ -118,5 +121,8 @@ namespace RuntimeNetcodeRPCValidator
             MethodBase methodBase) =>
             string.Format(CustomComponentAddedToExistingObjectConst, it.custom.Name, it.native.Name, methodBase.Name,
                 it.validator.PluginGuid);
+
+        internal static string PluginUnpatchedAllRPCs(NetcodeValidator netcodeValidator) =>
+            string.Format(PluginUnpatchedAllRPCsConst, netcodeValidator.PluginGuid);
     }
 }

@@ -141,6 +141,7 @@ namespace RuntimeNetcodeRPCValidator
 
         public void UnpatchSelf()
         {
+            Plugin.Logger.LogInfo(TextHandler.PluginUnpatchedAllRPCs(this));
             Patcher.UnpatchSelf();
         }
 
