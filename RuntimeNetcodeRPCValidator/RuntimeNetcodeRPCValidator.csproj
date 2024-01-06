@@ -7,6 +7,11 @@
         <Product>RuntimeNetcodeRPCValidator</Product>
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
+    <!-- Go away -->
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);CS0436</NoWarn>
+    </PropertyGroup>
+    
     <ItemGroup>
         <None Include="../README.md" Pack="true" PackagePath="/" />
         <None Include="../CHANGELOG.md" Pack="true" PackagePath="/" />
