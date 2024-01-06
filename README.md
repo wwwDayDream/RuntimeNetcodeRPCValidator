@@ -56,6 +56,8 @@ namespace SomePlugin {
         {
             netcodeValidator = new NetcodeValidator("My.Plugin.Guid");
             netcodeValidator.PatchAll();
+            
+            netcodeValidator.BindToPreExistingObjectByBehaviour<PluginNetworkingInstance, Terminal>(RuntimeNetcodeRPCValidator.NetcodeValidator.InsertionPoint.Awake);
         }
         
         // [[OPTIONAL DISPOSE TO UNPATCH]]
@@ -71,24 +73,16 @@ namespace SomePlugin {
 ```csharp
 // Example of using Server or Client RPCs. Naming conventions require the method to end with the corresponding attribute name.
 namespace SomePlugin {
-    // This assumes you've declared a BaseUnityPlugin and Harmony instance elsewhere. Including the previous snippet about NetcodeValidator.
-    [HarmonyPatch(typeof(Terminal), "Start")]
-    private static class Patch {
-        [HarmonyPrefix]
-        private static void AddToTerminalObject(Terminal __instance) {
-            __instance.gameObject.AddComponent<PluginNetworkingInstance>();
-        }
-    }
     public class PluginNetworkingInstance : NetworkBehaviour {
         [ServerRpc]
         public void SendPreferredNameServerRpc(string name) {
             // Log the received name
             Debug.Log(name);
             // Tell all clients what the sender told us
-            TellAllOtherClients(NetworkBehaviourExtensions.LastSenderId, name);
+            TellAllOtherClientsClientRpc(NetworkBehaviourExtensions.LastSenderId, name);
         }
         [ClientRpc]
-        public void TellAllOtherClients(ulong senderId, string name) {
+        public void TellAllOtherClientsClientRpc(ulong senderId, string name) {
             Debug.Log(StartOfRound.Instance.allPlayerScripts.First(playerController => playerController.actualClientId == senderId).playerUsername + " is now " + name);
         }
         [ClientRpc]
@@ -120,7 +114,7 @@ namespace SomePlugin {
 Utilize the `NetworkBehaviourExtensions.LastSenderId` property to retrieve the ID of the last RPC sender. This will always be `NetworkManager.ServerClientId` on the clients.
 
 ### Pre-Existing NetworkObject
-So you don't wanna make a prefab eh? Don't feel like registering it with the network and all that jazz? 
+So you don't wanna make a prefab eh? Don't feel like registering it with the network? Afraid of what might come? Fear no more, as you can bind your NetworkBehaviour to a pre-existing (native) NetworkBehaviour utilizing a method anytime before `NetworkManager` is initialized. Generally this would be in your Plugins Awake, right after you create and patch with your NetcodeValidator. See the [Examples](#examples) above for more details.
 
 ## Version Compliance
 - [Networking For GameObjects (NGO)](https://github.com/Unity-Technologies/com.unity.netcode.gameobjects/tree/develop) No version issues reported.
