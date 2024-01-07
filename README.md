@@ -69,7 +69,7 @@ namespace SomePlugin {
 namespace SomePlugin {
     public class PluginNetworkingInstance : NetworkBehaviour {
         [ServerRpc]
-        public void SendPreferredNameServerRpc(string name) {
+        public void SendUsDataServerRpc() {
             // Log the received name
             Debug.Log(name);
             // Tell all clients what the sender told us
@@ -86,8 +86,7 @@ namespace SomePlugin {
         }
         private void Awake()
         {
-            // Are we a server instance?
-            if (IsHost)
+            if (!IsHost) // Any clients should ask for sync of something :shrug:
                 StartCoroutine(WaitForSomeTime());
         }
 
@@ -97,7 +96,7 @@ namespace SomePlugin {
             yield return new WaitUntil(() => NetworkObject.IsSpawned);
         
             // Tell all clients to run this method.
-            RunClientRpc();
+            SendUsDataServerRpc();
         } 
     }
 }
@@ -128,4 +127,4 @@ We welcome contributions! If you would like to help improve the RNV, please subm
 
 ## Contact
 
-Discord: [www.day.dream](https://discordapp.com/users/160901181692968971)
+Discord: [@Day](https://discordapp.com/users/160901181692968971)

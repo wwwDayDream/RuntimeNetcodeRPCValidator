@@ -100,7 +100,9 @@ namespace RuntimeNetcodeRPCValidator
                 var paramInfo = parameters[i];
                 var paramInst = args[i];
 
-                var isNull = paramInst == null;
+                var isNull = paramInst == null || 
+                             paramInfo.ParameterType == typeof(ServerRpcParams) ||
+                             paramInfo.ParameterType == typeof(ClientRpcParams);
                 fastBufferWriter.WriteValueSafe(isNull);
                 if (isNull) continue;
 

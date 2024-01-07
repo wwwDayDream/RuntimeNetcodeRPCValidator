@@ -1,4 +1,5 @@
 using System.Collections;
+using RuntimeNetcodeRPCValidator;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -23,16 +24,25 @@ namespace UnitTester
         [ServerRpc(RequireOwnership = true)]
         private void MustBeOwnerServerRpc()
         {
-            Plugin.LogSource.LogInfo($"{nameof(MustBeOwnerServerRpc)} received from {RuntimeNetcodeRPCValidator.NetworkBehaviourExtensions.LastSenderId}");
+            Plugin.LogSource.LogInfo($"{nameof(MustBeOwnerServerRpc)} received");
         }
 
         /// <summary>
         /// Any client can run this method.
         /// </summary>
         [ServerRpc(RequireOwnership = false)]
-        private void NotRequiredOwnershipServerRpc()
+        private void NotRequiredOwnershipServerRpc(ServerRpcParams rpcParams = default)
         {
-            Plugin.LogSource.LogInfo($"{nameof(NotRequiredOwnershipServerRpc)} received from {RuntimeNetcodeRPCValidator.NetworkBehaviourExtensions.LastSenderId}");
+            Plugin.LogSource.LogInfo($"{nameof(NotRequiredOwnershipServerRpc)} " +
+                                     $"received from {rpcParams.Receive.SenderClientId}. " +
+                                     $"Asking them only to print 'Hello'");
+            PrintLineClientRpc(rpcParams.CreateSendToFromReceived());
+        }
+
+        [ClientRpc]
+        private void PrintLineClientRpc(ClientRpcParams rpcParams = default)
+        {
+            Plugin.LogSource.LogInfo("Received Print Line from Server");
         }
 
         /// <summary>
@@ -44,18 +54,16 @@ namespace UnitTester
             Plugin.LogSource.LogInfo("Received servers request to try to ping back.");
             NotRequiredOwnershipServerRpc();
             MustBeOwnerServerRpc();
-            Plugin.LogSource.LogInfo("Testing attempting to run ClientRpc from a Client.");
-            if (!IsHost || !IsServer)
-                ValidClientRpc();
         }
         
         /// <summary>
         /// A Server Remote Procedure Call available to any connected client.
         /// </summary>
         [ServerRpc(RequireOwnership = false)]
-        public void MasterServerRpc()
+        public void MasterServerRpc(ServerRpcParams rpcParams = default)
         {
-            Plugin.LogSource.LogInfo($"{nameof(MasterServerRpc)} received from {RuntimeNetcodeRPCValidator.NetworkBehaviourExtensions.LastSenderId}");
+            Plugin.LogSource.LogInfo($"{nameof(MasterServerRpc)} " +
+                                     $"received from {rpcParams.Receive.SenderClientId}");
             ValidClientRpc();
         }
         

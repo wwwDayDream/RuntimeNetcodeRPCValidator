@@ -14,13 +14,15 @@ namespace RuntimeNetcodeRPCValidator
             FromNetworking
         }
 
-        /// <summary>
-        /// Retrieves the last remote procedure call (RPC) sender.
-        /// </summary>
-        public static ulong LastSenderId { get; private set; }
-
         private static RpcState RpcSource;
-        
+
+
+        public static ClientRpcParams CreateSendToFromReceived(this ServerRpcParams senderId) =>
+            new ClientRpcParams()
+                { Send = new ClientRpcSendParams()
+                {
+                    TargetClientIds = new[] { senderId.Receive.SenderClientId }
+                } };
         public static void SyncWithNetworkObject(this NetworkBehaviour networkBehaviour)
         {
             if (!networkBehaviour.NetworkObject.ChildNetworkBehaviours.Contains(networkBehaviour))
@@ -44,7 +46,7 @@ namespace RuntimeNetcodeRPCValidator
             {
                 Plugin.Logger.LogError(
                     TextHandler.NotOwnerOfNetworkObject(
-                        state == RpcState.FromUser ? "We" : "Client " + LastSenderId, 
+                        state == RpcState.FromUser ? "We" : "Client", 
                         method, networkBehaviour.NetworkObject));
                 return false;
             }
@@ -105,14 +107,22 @@ namespace RuntimeNetcodeRPCValidator
                 ? NetworkDelivery.Reliable
                 : NetworkDelivery.Unreliable;
             
-            
-            
             if (rpcAttribute is ServerRpcAttribute)
                 NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage(
                     messageChannel, NetworkManager.ServerClientId, writer, delivery);
             else
-                NetworkManager.Singleton.CustomMessagingManager.SendNamedMessageToAll(
+            {
+                var paramsToWorkWith = method.GetParameters();
+                var isLastItemClientRpcAttr = paramsToWorkWith.Length > 0 &&
+                    paramsToWorkWith[paramsToWorkWith.Length - 1].ParameterType == typeof(ClientRpcParams);
+                
+                if (isLastItemClientRpcAttr)
+                    NetworkManager.Singleton.CustomMessagingManager.SendNamedMessage(
+                        messageChannel, ((ClientRpcParams)args[args.Length - 1]).Send.TargetClientIds, writer, delivery);
+                else
+                    NetworkManager.Singleton.CustomMessagingManager.SendNamedMessageToAll(
                     messageChannel, writer, delivery);
+            }
 
             return false;
 
@@ -142,17 +152,31 @@ namespace RuntimeNetcodeRPCValidator
                 return;
             }
 
-            if (!ValidateRPCMethod(networkBehaviour, method, RpcState.FromNetworking, out _))
+            if (!ValidateRPCMethod(networkBehaviour, method, RpcState.FromNetworking, out var rpcAttribute))
                 return;
-            
+
             RpcSource = RpcState.FromNetworking;
-            LastSenderId = sender;
             
+            var paramsToWorkWith = method.GetParameters();
+            var isLastItemServerRpcAttr = rpcAttribute is ServerRpcAttribute && 
+                                          paramsToWorkWith.Length > 0 &&
+                                          paramsToWorkWith[paramsToWorkWith.Length - 1].ParameterType == typeof(ServerRpcParams);
+
             object[] methodParams = null;
-            if (method.GetParameters().Any())
-                methodParams = new object[method.GetParameters().Length];
+            if (paramsToWorkWith.Length > 0)
+                methodParams = new object[paramsToWorkWith.Length];
             
             reader.ReadMethodInfoAndParameters(method.DeclaringType, ref methodParams);
+
+            if (isLastItemServerRpcAttr)
+                methodParams[methodParams.Length - 1] = new ServerRpcParams()
+                {
+                    Receive = new ServerRpcReceiveParams()
+                    {
+                        SenderClientId = sender
+                    }
+                };
+            
             method.Invoke(networkBehaviour, methodParams);
         }
 

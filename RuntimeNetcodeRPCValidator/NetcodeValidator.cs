@@ -77,7 +77,12 @@ namespace RuntimeNetcodeRPCValidator
             return true;
         }
 
-        public void BindToPreExistingObjectByBehaviour<TCustomBehaviour, TNativeBehaviour>() 
+        /// <summary>
+        /// Binds a custom behaviour to a pre-existing object by specifying the custom behaviour type and the native behaviour type.
+        /// </summary>
+        /// <typeparam name="TCustomBehaviour">The type of the custom behaviour to bind.</typeparam>
+        /// <typeparam name="TNativeBehaviour">The type of the native behaviour to bind.</typeparam>
+        public void BindToPreExistingObjectByBehaviour<TCustomBehaviour, TNativeBehaviour>()
             where TCustomBehaviour : NetworkBehaviour where TNativeBehaviour : NetworkBehaviour
         {
             if (NetworkManager.Singleton &&
